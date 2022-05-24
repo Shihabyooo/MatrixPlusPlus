@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "C/C++: clang build active file",
+			"command": "clang++",
+			"args": [
+				"-std=c++17",
+				"-stdlib=libstdc++",
+				"-g",
+				"${workspaceFolder}/MatrixPlusPlus/*.cpp",
+				"-o",
+				"${workspaceFolder}/Build/${workspaceFolderBasename}",
+				"-v", //verbose
+				"-msse",
+				"-mavx", //enables AVX
+				"-mavx2", //enables AVX2
+				//"-mavx512f", //enables AVX-512
+				"-mfma", //enables FMA
+				//"-march=native", //enables all IS supported by current CPU.
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		}
+	]
+}
