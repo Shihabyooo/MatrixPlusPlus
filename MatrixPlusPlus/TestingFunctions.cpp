@@ -9,14 +9,11 @@
 
 
 int main(int argc, char ** argv)
-{
-	std::cout << "TESTTTT!" << std::endl;
-	
+{	
 	int size1 = 1000;
 	int size2 = 1000;
-
-	//Matrix_f32 matA = Matrix_f32::Identity(8);
-	for (int  trial = 0; trial < 10; trial++)
+	int trialsCount = 10;
+	for (int  trial = 0; trial < trialsCount; trial++)
 	{
 		Matrix_f32 matA = Matrix_f32(size1, size2);
 		Matrix_f32 matB = Matrix_f32(size2, size1);
