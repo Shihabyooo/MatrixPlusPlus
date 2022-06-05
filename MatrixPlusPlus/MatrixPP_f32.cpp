@@ -1,35 +1,39 @@
 #include "MatrixPP_f32.hpp"
 
+Matrix_f32::Matrix_f32()
+{
+	rows = 0;
+	columns = 0;
+	content = NULL;
+}
 
-// Matrix_f32::Matrix_f32()
-// {
-//     Array2D<float>::Array2D();
-// }
+Matrix_f32::Matrix_f32(_INDEX _rows, _INDEX _columns)
+{
+	Alloc(_rows, _columns);
 
-// Matrix_f32::Matrix_f32(_INDEX, _INDEX)
-// {
-    
-// }
+	columns = _columns;
+	rows = _rows;
+}
 
-// Matrix_f32::Matrix_f32(const Matrix_f32 & sourceMAt)
-// {
+Matrix_f32::Matrix_f32(_INDEX _rows, _INDEX _columns, float defaultValue)
+{
+	Alloc(_rows, _columns);
 
-// }
+	columns = _columns;
+	rows = _rows;
 
-// Matrix_f32::Matrix_f32(_INDEX _rows, _INDEX _columns, float defaultValue)
-// {
+	SetEntireArrayToFixedValue(defaultValue);
+}
 
-// }
+Matrix_f32::Matrix_f32(const Matrix_f32 & sourceMat)
+{
+	*this = sourceMat;
+}
 
-// Matrix_f32::Matrix_f32(std::vector<std::vector<float>> & sourceVec)
-// {
-
-// }
-
-// Matrix_f32::~Matrix_f32()
-// {
-
-// }
+Matrix_f32::~Matrix_f32()
+{
+	DeleteContent();
+}
 
 Matrix_f32::Matrix_f32(Array2D<float> sourceArr)
 {
@@ -48,7 +52,11 @@ Matrix_f32::Matrix_f32(Array2D<long> sourceArr)
 
 Matrix_f32 Matrix_f32::operator*(const Matrix_f32 & mat2)
 {
-    return MultiplyMatricesVectorized(*this, mat2);
+	#ifdef _VECTORIZED_CODE
+    return MultiplyMatricesVectorized_N(*this, mat2);
+	#else
+	return MultiplyMatrices(*this, mat2);
+	#endif
 }
 
 Matrix_f32 Matrix_f32::operator*(const double & scalar)
@@ -58,12 +66,20 @@ Matrix_f32 Matrix_f32::operator*(const double & scalar)
 
 Matrix_f32 Matrix_f32::operator+(const Matrix_f32 & mat2)
 {
+	#ifdef _VECTORIZED_CODE
     return AddMatricesVectorized(*this, mat2);
+	#else
+	return AddMatrices(*this, mat2);
+	#endif
 }
 
 Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2)
 {
+	#ifdef _VECTORIZED_CODE
     return SubtractMatricesVectorized(*this, mat2);
+	#else
+	return SubtractMatrices(*this, mat2);
+	#endif
 }
 
 Matrix_f32 Matrix_f32::GetSubMatrix(_INDEX beginRow, _INDEX noOfRows, _INDEX beginColumn, _INDEX noOfColumns)
@@ -276,70 +292,6 @@ Matrix_f32 ** Matrix_f32::DecomposeLUP(const Matrix_f32 &mat) //TODO finish impl
 	return decomposition;
 }
 
-// Matrix_f32 Matrix_f32::VectorizedAddition(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
-// {
-//     if (!AreOfSameSize(mat1, mat2))
-// 	{
-// 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
-// 		return Matrix_f32();
-// 	}
-
-// 	Matrix_f32 result(mat1.Rows(), mat1.Columns());
-
-// 	// _INDEX size = result.Rows() * result.Columns();
-// 	// int remainder = size % _VECTOR_SIZE;
-// 	// int vectorizedSpan = size - remainder;
-// 	// float * a = &mat1.content[0][0];
-// 	// float * b = &mat2.content[0][0];
-// 	// float * c = &result.content[0][0];
-
-// 	// for (int i = 0; i < vectorizedSpan; i += _VECTOR_SIZE)
-// 	// {
-// 	// 	__m256 result = _mm256_add_ps(_mm256_loadu_ps(a), _mm256_loadu_ps(b));
-// 	// 	_mm256_storeu_ps(c, result);
-// 	// 	a += _VECTOR_SIZE;// * sizeof(double);
-// 	// 	b += _VECTOR_SIZE;// * sizeof(double);
-// 	// 	c += _VECTOR_SIZE;// * sizeof(double);
-// 	// }
-	
-// 	// //handle remainders, if exist
-// 	// for (int i = vectorizedSpan; i < size; i++)
-// 	// {
-// 	// 	*c = (*a) + (*b);
-// 	// 	a++;
-// 	// 	b++;
-// 	// 	c++;
-// 	// }
-
-// 	return result;
-// }
-
-// Matrix_f32 Matrix_f32::VectorizedMultiplication(const Matrix_f32 &mat1, const Matrix_f32 & mat2)
-// {
-    
-// }
-
-template <typename T>
-void Matrix_f32::CopyFromArray2D(Array2D<T> sourceArr)
-{
-    DeleteContent();
-
-	rows = sourceArr.Rows();
-	columns = sourceArr.Columns();
-
-	if (sourceArr.IsEmpty())
-	{
-		content = NULL;
-		return;
-	}
-
-	Alloc(rows, columns);
-
-	for (_INDEX i = 0; i < rows; i++)
-		for (_INDEX j = 0; j < columns; j++)
-			content[i][j] = static_cast<float>(sourceArr.GetValue(i, j));
-}
-
 Matrix_f32 Matrix_f32::AddMAtrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
     if (!AreOfSameSize(mat1, mat2))
@@ -437,13 +389,14 @@ Matrix_f32 Matrix_f32::AddMatricesVectorized(const Matrix_f32 & mat1, const Matr
 
 	size_t size = result.Rows() * result.Columns();
 	
-	int remainder = size % _VECTOR_SIZE;
-	int vectorizedSpan = size - remainder;
+	//int remainder = size % _VECTOR_SIZE_F32;
+	//int vectorizedSpan = size - remainder;
 	float * a = &mat1.content[0][0];
 	float * b = &mat2.content[0][0];
 	float * c = &result.content[0][0];
-
-	for (int i = 0; i < vectorizedSpan; i += _VECTOR_SIZE)
+	
+	//for (_INDEX i = 0; i < vectorizedSpan; i += _VECTOR_SIZE_F32)
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
 	{
         #ifdef _USE_AVX512
             AddVectors512_f32(a, b, c);
@@ -453,19 +406,19 @@ Matrix_f32 Matrix_f32::AddMatricesVectorized(const Matrix_f32 & mat1, const Matr
             AddVectors128_f32(a, b, c);
         #endif
 
-		a += _VECTOR_SIZE;// * sizeof(double);
-		b += _VECTOR_SIZE;// * sizeof(double);
-		c += _VECTOR_SIZE;// * sizeof(double);
+		a += _VECTOR_SIZE_F32;// * sizeof(double);
+		b += _VECTOR_SIZE_F32;// * sizeof(double);
+		c += _VECTOR_SIZE_F32;// * sizeof(double);
 	}
 	
-	//handle remainders, if exist
-	for (int i = vectorizedSpan; i < size; i++)
-	{
-		*c = (*a) + (*b);
-		a++;
-		b++;
-		c++;
-	}
+	// //handle remainders, if exist
+	// for (int i = vectorizedSpan; i < size; i++)
+	// {
+	// 	*c = (*a) + (*b);
+	// 	a++;
+	// 	b++;
+	// 	c++;
+	// }
 
 	return result;
 }
@@ -482,13 +435,14 @@ Matrix_f32 Matrix_f32::SubtractMatricesVectorized(const Matrix_f32 & mat1, const
 
 	size_t size = result.Rows() * result.Columns();
 	
-	int remainder = size % _VECTOR_SIZE;
-	int vectorizedSpan = size - remainder;
+	//int remainder = size % _VECTOR_SIZE_F32;
+	//int vectorizedSpan = size - remainder;
 	float * a = &mat1.content[0][0];
 	float * b = &mat2.content[0][0];
 	float * c = &result.content[0][0];
 
-	for (int i = 0; i < vectorizedSpan; i += _VECTOR_SIZE)
+	//for (_INDEX i = 0; i < vectorizedSpan; i += _VECTOR_SIZE_F32)
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
 	{
         #ifdef _USE_AVX512
             SubtractVectors512_f32(a, b, c);
@@ -498,27 +452,164 @@ Matrix_f32 Matrix_f32::SubtractMatricesVectorized(const Matrix_f32 & mat1, const
             SubtractVectors128_f32(a, b, c);
         #endif
 
-		a += _VECTOR_SIZE;// * sizeof(double);
-		b += _VECTOR_SIZE;// * sizeof(double);
-		c += _VECTOR_SIZE;// * sizeof(double);
+		a += _VECTOR_SIZE_F32;// * sizeof(double);
+		b += _VECTOR_SIZE_F32;// * sizeof(double);
+		c += _VECTOR_SIZE_F32;// * sizeof(double);
 	}
 	
 	//handle remainders, if exist
-	for (int i = vectorizedSpan; i < size; i++)
-	{
-		*c = (*a) + (*b);
-		a++;
-		b++;
-		c++;
-	}
+	// for (int i = vectorizedSpan; i < size; i++)
+	// {
+	// 	*c = (*a) + (*b);
+	// 	a++;
+	// 	b++;
+	// 	c++;
+	// }
 
 	return result;
 }
 
-Matrix_f32 Matrix_f32::MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
+Matrix_f32 Matrix_f32::MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2) //incomplete
 {
-    Matrix_f32 result(mat1.Rows(), mat1.Columns());
+    Matrix_f32 result(mat1.Rows(), mat2.Columns());
 	
+	if (!AreMultipliable(mat1, mat2))
+	{
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+		return Matrix_f32();
+	}
+	
+	_INDEX size = result.Columns() * result.Rows();
+
+	float * a = new float [_VECTOR_SIZE_F32]();
+	float * b = &mat2.content[0][0];
+	float * c = &result.content[0][0];
+	_INDEX curRow = 0;
+	//size_t bSize = mat2.Columns() * mat2.Rows();
+
+	
+	for (_INDEX i = 0; i < size; i+= _VECTOR_SIZE_F32)
+	{
+		_INDEX curColumn= i % result.Columns();
+		curRow = floor(i / result.Columns());
+		
+		for (int j = 0; j < mat1.Columns(); j++)
+		{
+			_INDEX _row = curRow;
+			_INDEX _j = j;
+			a[0] = mat1.content[_row][_j];
+			_row++;
+			for (int k = 1; k < _VECTOR_SIZE_F32; k++)
+			{
+				if (_row >= mat1.Rows())
+				{
+					_row = 0;
+					_j++;
+					if (_j >= mat1.Columns())
+						_j = 0;
+				}
+				a[k] = mat1.content[_row][_j];
+			}
+
+			b = &mat2.content[j][curColumn];
+
+			// std::cout << " ====== " << std::endl;
+			// std::cout << "row, column : " << curRow << ", " << curColumn << std::endl;
+			// for (int x = 0; x < 8; x++)
+			// std::cout << " A: " << a[x] << ", b: " << *(b + x) << std::endl; //test
+
+
+			AddMultiplyVectors_f32(a, b, c, c);
+		}
+
+		c += _VECTOR_SIZE_F32;
+	}
+	
+
+	//delete[] b;
+	delete[] a;
+
+	return result;
+}
+
+Matrix_f32 Matrix_f32::MultiplyMatricesVectorized_N(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
+{
+	if (!AreMultipliable(mat1, mat2))
+	{
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+		return Matrix_f32();
+	}
+	if (mat1.Rows() < _VECTOR_SIZE_F32) //no need to vectorize
+		return MultiplyMatrices(mat1, mat2); //TODO move this check to * overload
+
+	Matrix_f32 result(mat1.Rows(), mat2.Columns());
+
+	size_t size = result.Rows() * result.Columns();
+	
+	int remainder = mat1.Columns() % _VECTOR_SIZE_F32;
+	int vectorizedSpan = mat1.Columns() - remainder;
+
+	//std::cout << "Size: " << size << " - Remainder: " << remainder << " - Vectorized Span: " << vectorizedSpan << std::endl; //test
+
+	float * a = new float[_VECTOR_SIZE_F32];
+	float * b = new float[_VECTOR_SIZE_F32];
+	float * c = new float[_VECTOR_SIZE_F32];
+
+	for (_INDEX i = 0; i < size; i++)
+	{
+		_INDEX row = floor(i / result.Rows());
+		_INDEX column = i % result.Columns();
+		for (_INDEX j = 0; j < vectorizedSpan; j += _VECTOR_SIZE_F32)
+		{
+			#define EXPAND(x) a[x]=mat1.content[row][j+x];\
+			b[x]=mat2.content[j+x][column];\
+
+			EXPAND(0)
+			EXPAND(1)
+			EXPAND(2)
+			EXPAND(3)
+			#ifdef _USE_AVX256
+			EXPAND(4)
+			EXPAND(5)
+			EXPAND(6)
+			EXPAND(7)
+			#endif
+			#ifdef _USE_AVX512
+			EXPAND(8)
+			EXPAND(9)
+			EXPAND(10)
+			EXPAND(11)
+			EXPAND(12)
+			EXPAND(13)
+			EXPAND(14)
+			EXPAND(15)
+			#endif
+
+			#ifdef _USE_AVX512
+				MultiplyVectors512_f32(a, b, c);
+			#elif defined(_USE_AVX256)
+				MultiplyVectors256_f32(a, b, c);
+			#elif defined(_USE_SSE)
+				MultiplyVectors128_f32(a, b, c);
+			#endif
+
+			result[row][column] += c[0]  + c[1] + c[2] + c[3];
+			#ifdef _USE_AVX256
+			result[row][column] += c[4] + c[5] + c[6] + c[7];
+			#endif
+			#ifdef _USE_AVX512
+			result[row][column] += c[8] + c[9] + c[10] + c[11] + c[12] + c[13] + c[14] + c[15]
+			#endif
+		}
+		for (_INDEX j = vectorizedSpan; j < vectorizedSpan + remainder; j++)
+		{
+			result[row][column] += mat1.GetValue(row, j) * mat2.GetValue(j, column);
+		}
+	}
+
+	delete[] a;
+	delete[] b;
+	delete[] c;
 
 	return result;
 }
@@ -574,6 +665,56 @@ double Matrix_f32::CalculateDeterminant(const Matrix_f32 & mat)
 	}
 
 	return result;
+}
+
+template <typename T>
+void Matrix_f32::CopyFromArray2D(Array2D<T> sourceArr)
+{
+    DeleteContent();
+
+	rows = sourceArr.Rows();
+	columns = sourceArr.Columns();
+
+	if (sourceArr.IsEmpty())
+	{
+		content = NULL;
+		return;
+	}
+
+	Alloc(rows, columns);
+
+	for (_INDEX i = 0; i < rows; i++)
+		for (_INDEX j = 0; j < columns; j++)
+			content[i][j] = static_cast<float>(sourceArr.GetValue(i, j));
+}
+
+void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
+{
+	try
+	{
+		size_t rawSize = _rows * _columns;
+		
+		size_t paddedSize = rawSize;
+		if (rawSize%_VECTOR_SIZE_F32> 0)
+			paddedSize = rawSize + _VECTOR_SIZE_F32 - (rawSize%_VECTOR_SIZE_F32);
+
+		//std::cout << "rawsize: " << rawSize << " - allocating: " << paddedSize << " - padded by " << _VECTOR_SIZE_F32 << std::endl; //test
+		content = new float*[_rows];
+		//T * helperPtr = new T[_rows * _columns];
+		float * helperPtr = new float[paddedSize]();
+
+		for (_INDEX i = 0; i < _rows; i++)
+		{
+			content[i] = helperPtr;
+			helperPtr += _columns;
+		}
+
+	}
+	catch (const std::bad_alloc& exception)
+	{
+		std::cout << "ERROR! Could not allocate array. " << exception.what() << std::endl;
+		throw exception;
+	}
 }
 
 Matrix_f32 Matrix_f32::GausJordanElimination(const Array2D & sourceMat)
@@ -634,4 +775,3 @@ Matrix_f32 Matrix_f32::GausJordanElimination(const Array2D & sourceMat)
 
 	return result;
 }
-

@@ -401,28 +401,6 @@ Array2D<T> Array2D<T>::TransposeArray(const Array2D<T> & sourceArr)
 }
 
 template <typename T>
-void Array2D<T>::AllocateMemory(_INDEX _rows, _INDEX _columns)
-{
-	try
-	{
-		content = new T*[_rows];
-		T * helperPtr = new T[_rows * _columns];
-
-		for (_INDEX i = 0; i < _rows; i++)
-		{
-			content[i] = helperPtr;
-			helperPtr += _columns;
-		}
-
-	}
-	catch (const std::bad_alloc& exception)
-	{
-		std::cout << "ERROR! Could not allocate array. " << exception.what() << std::endl;
-		throw exception;
-	}
-}
-
-template <typename T>
 Array2D<T> Array2D<T>::GetMinorSubMatrix(const Array2D<T> & sourceArr, _INDEX _row, _INDEX _column)
 {
 	//The ij-minor sub-matrix is obtained by deleting the ith row and jth column of a matrix.
@@ -446,6 +424,28 @@ Array2D<T> Array2D<T>::GetMinorSubMatrix(const Array2D<T> & sourceArr, _INDEX _r
 	}
 
 	return result;
+}
+
+template <typename T>
+void Array2D<T>::AllocateMemory(_INDEX _rows, _INDEX _columns)
+{
+	try
+	{
+		content = new T*[_rows];
+		T * helperPtr = new T[_rows * _columns]();
+
+		for (_INDEX i = 0; i < _rows; i++)
+		{
+			content[i] = helperPtr;
+			helperPtr += _columns;
+		}
+
+	}
+	catch (const std::bad_alloc& exception)
+	{
+		std::cout << "ERROR! Could not allocate array. " << exception.what() << std::endl;
+		throw exception;
+	}
 }
 
 template <typename T>

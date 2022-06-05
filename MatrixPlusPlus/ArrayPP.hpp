@@ -35,47 +35,6 @@ enum class MatrixInversionMethod
 template <typename T>
 class Array2D
 {
-private: 
-	//Array1D is a helper class to facilitate overloading of double brackets (i.e. foo[][]), since we can only overload operator[].
-	//This class should not be exposed to the outside of the Array2D class.
-	template <class _T>
-	class Array1D
-	{
-	public:
-		Array1D()
-		{
-			content_ = NULL;
-		};
-
-		Array1D(_INDEX _columns, _T * arrayRow)
-		{
-			columns_ = _columns;
-			content_ = arrayRow;
-		};
-
-		~Array1D()
-		{
-			//Array1D does not own its content, its merely a pointer to a row of the T ** content in Array2D. Deleting Array1D's content means deleting respective row in Array2D's content.
-			//leaving this as an empty destructor to prevent default compiler destructors.
-		};
-
-		_T & operator[] (_INDEX _column)
-		{
-			#ifdef _USE_BOUNDS_CHECK
-			if (content_ == NULL || _column >= columns_)
-				throw std::out_of_range("ERROR! Column value out of range or content set to NULL");
-			else
-				return content_[_column];
-			#else
-			return content_[_column];
-			#endif
-		};
-
-	private:
-		_T * content_ = NULL;
-		_INDEX columns_ = 0;
-	};
-
 public:
 	//constructors and destructors
 	Array2D();
@@ -91,19 +50,6 @@ public:
 	bool operator== (const Array2D<T> arr2); //equality check
 	bool operator!= (const Array2D<T> arr2); //non equality check (what?)
 	T & operator() (const _INDEX _row, const _INDEX _column);	//Array like assignment and reading. //TODO force type matching
-	// Array1D<T> & operator[] (const _INDEX _row)	//This is a multi-step overload of the double bracket operators (foo [][]) using helper object Array1D. Definition has to be in header because Array1D is a a type local to this class.
-	// 											//TODO fix: This current implementation is dangerous if a user used foo[] with one set of brackets.
-	// 											//TODO force type matching
-	// {
-	// 	#ifdef _USE_BOUNDS_CHECK
-	// 	if (_row >= rows)
-	// 		throw std::out_of_range("ERROR! Row value out of range or content set to NULL");
-	// 	#endif
-		
-	// 	Array1D<T> currentRow(columns, content[_row]);
-	// 	return currentRow;
-	// };
-
 	T * const & operator[] (const _INDEX _row);
 
 	//Setters and Getters
@@ -135,10 +81,10 @@ public:
 protected:
 	//basic methods
 	Array2D<T> TransposeArray(const Array2D<T> & sourceArr);
-
-	//private utilities
-	void AllocateMemory(_INDEX _rows, _INDEX _columns);
 	Array2D<T> GetMinorSubMatrix(const Array2D<T> & sourceArr, _INDEX _row, _INDEX _column);
+	
+	//private utilities
+	virtual void AllocateMemory(_INDEX _rows, _INDEX _columns);
 	void DeleteContent();
 	
 	//array contents and parameters
