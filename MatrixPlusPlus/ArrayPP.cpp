@@ -215,7 +215,7 @@ void Array2D<T>::SetEntireArrayToFixedValue(T value)
 }
 
 template <typename T>
-Array2D<T> Array2D<T>::GetSubMatrix(_INDEX beginRow, _INDEX noOfRows, _INDEX beginColumn, _INDEX noOfColumns)
+Array2D<T> Array2D<T>::GetSubMatrix(_INDEX beginRow, _INDEX noOfRows, _INDEX beginColumn, _INDEX noOfColumns) const
 {
 	
     #ifdef _USE_BOUNDS_CHECK
@@ -290,10 +290,7 @@ bool Array2D<T>::AreOfSameSize(const Array2D<T> & arr1, const Array2D<T> & arr2)
 template <typename T>
 bool Array2D<T>::IsSquared(const Array2D<T> & arr1)
 {
-	if (arr1.Columns() != arr1.Rows())
-		return false;
-	else
-		return true;
+	return arr1.Rows() == arr1.Columns();
 }
 
 template <typename T>
@@ -345,13 +342,37 @@ Array2D<T> Array2D<T>::MergeArrays(const Array2D<T> & arr1, const Array2D<T> & a
 
 	Array2D result(arr1.Rows(), arr1.Columns() + arr2.Columns());
 
-	for (_INDEX i = 0; i < result.Rows(); i++)
+	for (_INDEX row = 0; row < result.Rows(); row++)
 	{
-		for (_INDEX j = 0; j < arr1.Columns(); j++) //loop over the western (left) half of the array.
-			result.SetValue(i, j, arr1.GetValue(i, j));
+		for (_INDEX column = 0; column < arr1.Columns(); column++) //loop over the western (left) half of the array.
+			result.SetValue(row, column, arr1.GetValue(row, column));
 
-		for (_INDEX j = arr1.Columns(); j < arr1.Columns() + arr2.Columns(); j++) //loop over the easter (right) half of the array.
-			result.SetValue(i, j, arr2.GetValue(i, j - arr1.Columns()));
+		for (_INDEX column = arr1.Columns(); column < arr1.Columns() + arr2.Columns(); column++) //loop over the easter (right) half of the array.
+			result.SetValue(row, column, arr2.GetValue(row, column - arr1.Columns()));
+	}
+
+	return result;
+}
+
+template <typename T>
+Array2D<T> Array2D<T>::StackArrays(const Array2D<T> &arr1, const Array2D<T> &arr2)
+{
+	if (!AreJoinable(arr1, arr2, false))
+	{
+		std::cout << "ERROR! Attempting to stack array of different widths" << std::endl;
+		return Array2D();
+	}
+
+	Array2D result(arr1.Rows() + arr2.Rows(), arr1.Columns());
+
+	for (_INDEX column = 0; column < arr1.Columns(); column++ )
+	{
+		//loop over northern half
+		for (_INDEX row = 0; row < arr1.Rows(); row++ )
+			result[row][column] = arr1.GetValue(row, column);
+
+		for (_INDEX row = arr1.Rows(); row < arr1.Rows() + arr2.Rows(); row++ )
+			result[row][column] = arr2.GetValue(row - arr1.Rows(), column);
 	}
 
 	return result;

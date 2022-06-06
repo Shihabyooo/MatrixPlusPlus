@@ -1,6 +1,9 @@
 //TODO consider adding a _BEST_PERF flag that simply uses the highest IS enabled by the compiler (i.e. wrap the #ifdef block in #ifndef _BEST_PERF,
 // and in the #else section test def pf __AVX512F__ et al and redefine the flag accordinegly).
 
+//TODO test the benefit of having a function specially for scalar multiplication. Would be similar to normal multiplication, except using loaders
+//of style _m256_set1_ps() to load the scalar vector.
+
 #pragma once
 #include <immintrin.h>
 
