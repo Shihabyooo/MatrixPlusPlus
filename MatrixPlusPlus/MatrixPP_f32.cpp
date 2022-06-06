@@ -59,7 +59,7 @@ Matrix_f32 Matrix_f32::operator*(const Matrix_f32 & mat2)
 	#endif
 }
 
-Matrix_f32 Matrix_f32::operator*(const double & scalar)
+Matrix_f32 Matrix_f32::operator*(const float & scalar)
 {
     return MultiplayMatrixWithScalarVectorized(*this, scalar);
 }
@@ -82,43 +82,12 @@ Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2)
 	#endif
 }
 
-Matrix_f32 Matrix_f32::GetSubMatrix(_INDEX beginRow, _INDEX noOfRows, _INDEX beginColumn, _INDEX noOfColumns)
-{
-    	
-    #ifdef _USE_BOUNDS_CHECK
-	if (content == NULL || beginRow + noOfRows > rows || beginColumn + noOfColumns > columns)  //TODO consider rearranging the arguments for this method to have the pivot coord
-																			//first then lengths.
-	{
-		//std::cout << "ERROR! Attempting to extract submatrix with a range outside the original matrix bounds" << std::endl;
-		throw std::out_of_range("ERROR! Column or Row value out of range or content set to NULL");
-	}
-    #endif
-
-	if (noOfRows < 1 || noOfColumns < 1)
-	{
-		std::cout << "ERROR! Attempting to extract submatrix with null size in one both dimensions." << std::endl;
-		return Matrix_f32();
-	}
-    
-	Matrix_f32 subMatrix(noOfRows, noOfColumns);
-
-	for (_INDEX i = beginRow; i < beginRow + noOfRows; i++)
-	{
-		for (_INDEX j = beginColumn; j < beginColumn + noOfColumns; j++)
-		{
-			subMatrix.SetValue(i - beginRow, j - beginColumn, content[i][j]);
-		}
-	}
-
-	return subMatrix;
-}
-
-Matrix_f32 Matrix_f32::Invert()
+Matrix_f32 Matrix_f32::Invert() const
 {
     return InvertMatrix(*this);
 }
 
-double Matrix_f32::Determinant()
+double Matrix_f32::Determinant() const
 {
     return CalculateDeterminant(*this);
 }
@@ -170,7 +139,7 @@ Matrix_f32 Matrix_f32::Identity(_INDEX dimension)
 	return uMatrix;
 }
 
-bool Matrix_f32::AreMultipliable(const Matrix_f32 &mat1, const Array2D &mat2)
+bool Matrix_f32::AreMultipliable(const Matrix_f32 &mat1, const Matrix_f32 &mat2)
 {
     if (mat1.Columns() != mat2.Rows())
 		return false;
@@ -208,7 +177,7 @@ bool Matrix_f32::IsSymmetric(const Matrix_f32 & mat, double tolerance)
 	return true;
 }
 
-bool Matrix_f32::AreNearlyEquall(const Matrix_f32 &mat1, const Array2D &mat2, double tolerance)
+bool Matrix_f32::AreNearlyEquall(const Matrix_f32 &mat1, const Matrix_f32 &mat2, double tolerance)
 {
     tolerance = fabs(tolerance); //in case it was sent as a negative value, in-which case all matrices would turn out to be equall.
 	if (!AreOfSameSize(mat1, mat2))
@@ -362,7 +331,7 @@ Matrix_f32 Matrix_f32::MultiplyMatrices(const Matrix_f32 & mat1, const Matrix_f3
 	return result;
 }
 
-Matrix_f32 Matrix_f32::MultiplayMatrixWithScalar(const Matrix_f32 & mat1, const double scalar)
+Matrix_f32 Matrix_f32::MultiplayMatrixWithScalar(const Matrix_f32 & mat1, const float scalar)
 {
     Matrix_f32 result = mat1;
 
@@ -614,11 +583,34 @@ Matrix_f32 Matrix_f32::MultiplyMatricesVectorized_N(const Matrix_f32 & mat1, con
 	return result;
 }
 
-Matrix_f32 Matrix_f32::MultiplayMatrixWithScalarVectorized(const Matrix_f32 & mat1, const double scalar)
+Matrix_f32 Matrix_f32::MultiplayMatrixWithScalarVectorized(const Matrix_f32 & mat1, const float scalar)
 {
-    Matrix_f32 result = mat1;
+    Matrix_f32 result(mat1.Rows(), mat1.Columns());
 	
+	_INDEX size = mat1.Rows() * mat1.Columns();
+	float * a = &mat1.content[0][0];
+	float * b;
+	float * c = &result.content[0][0];
 
+	b = new float[_VECTOR_SIZE_F32];
+	for (int i = 0; i < _VECTOR_SIZE_F32; i++)
+		b[i] = scalar;
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+		#ifdef  _USE_AVX512
+			MultiplyVectors512_f32(a, b, c);
+		#elif defined(_USE_AVX256)
+			MultiplyVectors256_f32(a, b, c);
+		#elif defined(_USE_SSE)
+			MultiplyVectors128_f32(a, b, c);
+		#endif
+
+		a += _VECTOR_SIZE_F32;
+		c += _VECTOR_SIZE_F32;
+	}
+
+	delete[] b;
 	return result;
 }
 
@@ -634,6 +626,8 @@ Matrix_f32 Matrix_f32::InvertMatrix(const Matrix_f32 & sourceMat, MatrixInversio
 	{
 	case MatrixInversionMethod::Gauss_Jordan:
 		return GausJordanElimination(sourceMat);
+	case MatrixInversionMethod::Blockwise:
+		return BlockwiseInversion(sourceMat);
 	default:
 		std::cout << "ERROR! Received unsupported MatrixInversionMethod in InverArray()." << std::endl; //shouldn't happen (but still...)
 		return Matrix_f32();
@@ -717,7 +711,7 @@ void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
 	}
 }
 
-Matrix_f32 Matrix_f32::GausJordanElimination(const Array2D & sourceMat)
+Matrix_f32 Matrix_f32::GausJordanElimination(const Matrix_f32 & sourceMat)
 {
     Matrix_f32 result(sourceMat.Rows(), sourceMat.Columns());
 	Matrix_f32 augmentedArr = MergeArrays(sourceMat, Identity(sourceMat.Rows())); //augmentedArr is the augment matrix, which is the original matrix with a identity matrix attached to its right.
@@ -774,4 +768,107 @@ Matrix_f32 Matrix_f32::GausJordanElimination(const Array2D & sourceMat)
 	result = augmentedArr.GetSubMatrix(0, result.Rows(), sourceMat.Columns(), result.Columns());
 
 	return result;
+}
+
+Matrix_f32 Matrix_f32::BlockwiseInversion(const Matrix_f32 & sourceMat) //recurisve function
+{
+
+	//https://en.wikipedia.org/wiki/Invertible_matrix#Blockwise_inversion
+	//https://math.stackexchange.com/questions/2735/solving-very-large-matrices-in-pieces
+	
+	//Subdivide matrix A into 	[E	F]
+	//							[G	H]
+
+	//Inv[A] then is			[E' + (E' F)(H - G E' F)'(G E')		-(E' F)(H - G E' F)']
+	//							[-(H - G E' F)'						(H - G E' F)'		]
+	
+	//Note: This implementation is atrociously memory-inefficient. It seems that it's possible to some (msot?) of the processing in place. To be further investigated.
+	//https://math.stackexchange.com/questions/16940/in-place-inversion-of-large-matrices
+	//copy the sourceMat into result, then operate on result.
+
+	switch (sourceMat.Rows())
+	{
+	case 1:
+		return Invert1x1Matrix(sourceMat);
+	case 2:
+		return Invert2x2Matrix(sourceMat);
+	case 3:
+		return Invert3x3Matrix(sourceMat);
+	default:
+		break;
+	}
+
+	_INDEX primarySubDimension = round((double)sourceMat.Rows() / 2.0F);
+	////You don't actually need to store e itself, could directly pass it to next recursion step.
+	Matrix_f32 e_ = BlockwiseInversion(sourceMat.GetSubMatrix(0, primarySubDimension, 0, primarySubDimension));
+
+	Matrix_f32 f = sourceMat.GetSubMatrix(0, primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension);
+	Matrix_f32 g = sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, 0, primarySubDimension);
+	Matrix_f32 h = sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension);
+
+	//Matrix_f32 e_ = BlockwiseInversion(e);
+	Matrix_f32 e_f = e_ * f;
+	Matrix_f32 ge_ = g * e_;
+	Matrix_f32 hge_f_ = BlockwiseInversion(h - (g * e_) * f);
+
+	//std::cout << "inside recurisve func for array of size: " << sourceMat.Rows() << std::endl;
+	// sourceMat.GetSubMatrix(0, primarySubDimension, 0, primarySubDimension).DisplayArrayInCLI();
+	// f.DisplayArrayInCLI();
+	// g.DisplayArrayInCLI();
+	// h.DisplayArrayInCLI();
+	// ((Matrix_f32)sourceMat.GetSubMatrix(0, primarySubDimension, 0, primarySubDimension) * e_).DisplayArrayInCLI();
+	// ((h - (g * e_) * f) * hge_f_).DisplayArrayInCLI();
+
+
+	Matrix_f32 result = Matrix_f32::StackArrays(
+		Matrix_f32::MergeArrays(e_ + e_f * hge_f_ * ge_,	(e_f * -1.0f) * hge_f_),
+		Matrix_f32::MergeArrays((hge_f_ * -1.0f) * ge_ ,		hge_f_)
+	);
+	
+	// (e_ + e_f * hge_f_ * ge_).DisplayArrayInCLI();
+	// ((e_f * -1.0f) * hge_f_).DisplayArrayInCLI();
+	// ((hge_f_ * -1.0f) * ge_ ).DisplayArrayInCLI();
+	// (hge_f_).DisplayArrayInCLI();
+	// result.DisplayArrayInCLI();
+	
+	return result;
+}
+
+
+Matrix_f32 Matrix_f32::Invert1x1Matrix(const Matrix_f32 & sourceMat)
+{
+	return Matrix_f32(1, 1, 1.0f / sourceMat.GetValue(0, 0));
+}
+
+Matrix_f32 Matrix_f32::Invert2x2Matrix(const Matrix_f32 & sourceMat)
+{
+	Matrix_f32 inv = Matrix_f32(2, 2);
+	double det = CalculateDeterminant(sourceMat);
+
+	inv[0][0] = sourceMat.GetValue(1, 1) / det;
+	inv[1][0] = -1.0f * sourceMat.GetValue(1, 0) / det;
+	inv[0][1] = -1.0f * sourceMat.GetValue(0, 1) / det;
+	inv[1][1] = sourceMat.GetValue(0, 0) / det;
+
+	return inv;
+}
+
+Matrix_f32 Matrix_f32::Invert3x3Matrix(const Matrix_f32 & sourceMat)
+{
+	Matrix_f32 inv = Matrix_f32(3, 3);
+	double det = CalculateDeterminant(sourceMat);
+
+	inv[0][0] = (sourceMat.GetValue(1, 1) * sourceMat.GetValue(2, 2) - sourceMat.GetValue(1, 2) * sourceMat.GetValue(2, 1)) / det;
+	inv[0][1] = (sourceMat.GetValue(0, 2) * sourceMat.GetValue(2, 1) - sourceMat.GetValue(0, 1) * sourceMat.GetValue(2, 2)) / det;
+	inv[0][2] = (sourceMat.GetValue(0, 1) * sourceMat.GetValue(1, 2) - sourceMat.GetValue(0, 2) * sourceMat.GetValue(1, 1)) / det;
+	
+	inv[1][0] = (sourceMat.GetValue(1, 2) * sourceMat.GetValue(2, 0) - sourceMat.GetValue(1, 0) * sourceMat.GetValue(2, 2)) / det;
+	inv[1][1] = (sourceMat.GetValue(0, 0) * sourceMat.GetValue(2, 2) - sourceMat.GetValue(0, 2) * sourceMat.GetValue(2, 0)) / det;
+	inv[1][2] = (sourceMat.GetValue(0, 2) * sourceMat.GetValue(1, 0) - sourceMat.GetValue(0, 0) * sourceMat.GetValue(1, 2)) / det;
+
+	inv[2][0] = (sourceMat.GetValue(1, 0) * sourceMat.GetValue(2, 1) - sourceMat.GetValue(1, 1) * sourceMat.GetValue(2, 0)) / det;
+	inv[2][1] = (sourceMat.GetValue(0, 1) * sourceMat.GetValue(2, 0) - sourceMat.GetValue(0, 0) * sourceMat.GetValue(2, 1)) / det;
+	inv[2][2] = (sourceMat.GetValue(0, 0) * sourceMat.GetValue(1, 1) - sourceMat.GetValue(0, 1) * sourceMat.GetValue(1, 0)) / det;
+
+	return inv;
 }
