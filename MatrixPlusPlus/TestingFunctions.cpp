@@ -76,7 +76,7 @@ int main(int argc, char ** argv)
 	// std::cout << "3 by 3:\n";
 	// (threeByThree * Matrix_f32::Invert3x3Matrix(threeByThree)).DisplayArrayInCLI(10);
 	
-	int size = 20;
+	int size = 10;
 	Matrix_f32 invTest(size, size);
 
 	srand(time(0));

@@ -89,6 +89,12 @@ Matrix_f32 Matrix_f32::Invert() const
 
 double Matrix_f32::Determinant() const
 {
+	if (!IsSquared(*this))
+	{
+		std::cout << "ERROR! Attempting to calculate the determinant of a non-squared matrix." << std::endl;
+		return 0;  //really need to figure out how to make this thing more gracefull.
+	}
+
     return CalculateDeterminant(*this);
 }
 
@@ -109,12 +115,12 @@ void Matrix_f32::Overlay(const Matrix_f32 mat2, _INDEX rowOffset, _INDEX columnO
 	}
 }
 
-Matrix_f32 ** Matrix_f32::DecomposeLU()
+Matrix_f32 ** Matrix_f32::DecomposeLU() const
 {
     return DecomposeLU(*this);
 }
 
-Matrix_f32 ** Matrix_f32::DecomposeLUP()
+Matrix_f32 ** Matrix_f32::DecomposeLUP() const
 {
     return DecomposeLUP(*this);
 }
@@ -636,27 +642,40 @@ Matrix_f32 Matrix_f32::InvertMatrix(const Matrix_f32 & sourceMat, MatrixInversio
 
 double Matrix_f32::CalculateDeterminant(const Matrix_f32 & mat)
 {
-    //This recurive method calculate the determinant for a matrix of arbitrary dimensions. If the recieved matrix is less than 2x2, directly return the determinant, else will make use of
-	//the method GetMinorSubMatrix() and work recuresively untill reaching the 2x2 matrices. 
-	double result = 0.0f;
+    //For 1x1, 2x2 and 3x3 matrices, the determinant is returned using hardcoded formula.
+	//For larger matrices, LU decomposition is made use of, where for A = LU -> det(A) = det(L) * det(U),
+	//and for triangular matrices, the determinant is simply the product of the diagonal.
 
-	if (!IsSquared(mat))
+	switch (mat.Rows())
 	{
-		std::cout << "ERROR! Attempting to calculate the determinant of a non-squared matrix." << std::endl;
-		return result;  //really need to figure out how to make this thing more gracefull.
+	case 1:
+		return mat.GetValue(0,0);
+	case 2:
+		return (mat.GetValue(0, 0) * mat.GetValue(1, 1)) - (mat.GetValue(1, 0) * mat.GetValue(0, 1));
+	case 3:
+		return (	mat.GetValue(0,0) * (mat.GetValue(1,1) * mat.GetValue(2,2) - mat.GetValue(1,2) * mat.GetValue(2,1))
+				-	mat.GetValue(0,1) * (mat.GetValue(1,0) * mat.GetValue(2,2) - mat.GetValue(1,2) * mat.GetValue(2,0))
+				+ 	mat.GetValue(0,2) * (mat.GetValue(1,0) * mat.GetValue(2,1) - mat.GetValue(1,1) * mat.GetValue(2,0)));
+		break;
+	default:
+		break;
 	}
 	
-	if (mat.Rows() > 2)
+	Matrix_f32 ** LU = mat.DecomposeLU();
+
+	if (LU == NULL)
 	{
-		for (size_t i = 0; i < mat.Rows(); i++)
-		{
-			result += pow(-1.0f, i) * mat.GetValue(0, i) * CalculateDeterminant(GetMinorSubMatrix(mat, 0, i));	//this is where the recurssion happens. The pow(-1.0f, i) term is used
-		}																													//to flip the sign of the addition based on which column we're at.
+		std::cout << "ERROR! Could not generate LU decomposition to computedeterminant." <<std::endl;
+		return 0;
 	}
-	else
-	{
-		result = (mat.GetValue(0, 0) * mat.GetValue(1, 1)) - (mat.GetValue(1, 0) * mat.GetValue(0, 1));
-	}
+
+	double result = LU[0]->GetValue(0,0) * LU[1]->GetValue(0,0);
+	for (_INDEX i = 0; i < mat.Rows(); i++)
+		result = result * LU[0]->GetValue(i, i) * LU[1]->GetValue(i, i);
+
+	delete LU[0];
+	delete LU[1];
+	delete[] LU;
 
 	return result;
 }

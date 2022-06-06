@@ -27,12 +27,11 @@ public:
     Matrix_f32 operator+ (const Matrix_f32 & mat2);
 	Matrix_f32 operator- (const Matrix_f32 & mat2);
 
-    //todo add a special GetSubMAtrix class to return Matrix_f32.
     Matrix_f32 Invert() const;
     double Determinant() const;
     void Overlay(const Matrix_f32 mat2, _INDEX rowOffset, _INDEX columnOffset); //Add another Array2D of non-equal size to this Array2D element by element. If the second Array2D is larger, elements outside the boundary will be clipped. rowOffset and columnOffset determine which elements of the first Array2D the first element of the second Array2D will be added to. //TODO vectorize this
-    Matrix_f32 ** DecomposeLU(); //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices, returns as an array of two [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper. Returns NULL if not decomposable.
-    Matrix_f32 ** DecomposeLUP(); //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices with permuation, returns as an array of three [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper, the third is the permuation matrix. Returns NULL if not decomposable.
+    Matrix_f32 ** DecomposeLU() const; //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices, returns as an array of two [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper. Returns NULL if not decomposable.
+    Matrix_f32 ** DecomposeLUP() const; //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices with permuation, returns as an array of three [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper, the third is the permuation matrix. Returns NULL if not decomposable.
     bool NearlyEquals(const Matrix_f32 &mat2, double tolerance);
     bool IsSymmetric(float tolerance);
 
