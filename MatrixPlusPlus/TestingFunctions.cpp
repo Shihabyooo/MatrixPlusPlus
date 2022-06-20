@@ -87,7 +87,45 @@ int main(int argc, char ** argv)
 	//invTest.DisplayArrayInCLI();
 	//Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise).DisplayArrayInCLI();
 	//(invTest * Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).DisplayArrayInCLI(7);
-	std::cout << "Determinant of result: " << (invTest * Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).Determinant() << std::endl;
+	std::cout << "Determinant of result: " << (invTest *Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).Determinant() << std::endl;
+
+	Vector_f32 testVec(5, 1.0f);
+	Vector_f32 testVec2(5, 2.0f);
+	
+	testVec = testVec + testVec2;
+	testVec.DisplayArrayInCLI();
+
+	/*srand(time(0));
+	Matrix_f32 testMat(5, 5);
+	for (int i = 0; i < 5; i++)
+		for (int j = 0; j < 5; j++)
+			testMat[i][j] = rand() % 10;*/
+
+	/*testMat.DisplayArrayInCLI();
+	float ** column0 = testMat.GetColumnPtr(0);
+	float ** column1 = testMat.GetColumnPtr(1);
+	float ** column2 = testMat.GetColumnPtr(2);
+	
+	for (int i = 0; i < 5; i++)
+		std::cout << *(column0[i]) << std::endl;
+	std::cout << "\n";
+	for (int i = 0; i < 5; i++)
+		std::cout << *(column1[i]) << std::endl;
+	std::cout << "\n";
+	for (int i = 0; i < 5; i++)
+		std::cout << *(column2[i]) << std::endl;
+	std::cout << "\n";
+
+	auto columnCopy1 = testMat.GetColumn(1);
+	auto rowCopy1 = testMat.GetRow(1);
+	
+	for (int i = 0; i < 5; i++)
+		std::cout << columnCopy1[i] << std::endl;
+	std::cout << "\n";
+
+	for (int i = 0; i < 5; i++)
+		std::cout << rowCopy1[i] << "\t";
+	std::cout << "\n";*/
 
 	return 0;
 }
