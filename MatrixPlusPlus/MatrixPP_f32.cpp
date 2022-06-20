@@ -86,6 +86,42 @@ Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2)
 #endif
 }
 
+void Matrix_f32::operator+=(Matrix_f32 const & mat2)
+{
+#ifdef _VECTORIZED_CODE
+	AddInPlaceVectorized(mat2);
+#else
+	AddInPlace(mat2);
+#endif
+}
+
+void Matrix_f32::operator-=(Matrix_f32 const & mat2)
+{
+#ifdef _VECTORIZED_CODE
+	SubtractInPlaceVectorized(mat2);
+#else
+	SubtractInPlace(mat2);
+#endif
+}
+
+void Matrix_f32::operator*=(Matrix_f32 const & mat2)
+{
+#ifdef _VECTORIZED_CODE
+	*this = MultiplyMatricesVectorized_N(*this, mat2);
+#else
+	*this = MultiplyMatrices(*this, mat2);
+#endif
+}
+
+void Matrix_f32::operator*=(const double scalar)
+{
+#ifdef _VECTORIZED_CODE
+	MultiplyWithScalarInPlaceVectorized(scalar);
+#else
+	MultiplyWithScalarInPlace(scalar);
+#endif
+}
+
 Matrix_f32 Matrix_f32::Invert() const
 {
 	return InvertMatrix(*this);
@@ -138,6 +174,131 @@ bool Matrix_f32::IsSymmetric(float tolerance)
 {
 	return IsSymmetric(*this, tolerance);
 }
+
+void Matrix_f32::AddInPlace(Matrix_f32 const & mat2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, mat2))
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+#endif
+
+	float * a = &content[0][0];
+	float * b = &mat2.content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*a += *b;
+		a++;
+		b++;
+	}
+}
+
+void Matrix_f32::SubtractInPlace(Matrix_f32 const & mat2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, mat2))
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+#endif // _USE_BOUNDS_CHECK
+
+	float * a = &content[0][0];
+	float * b = &mat2.content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*a -= *b;
+		a++;
+		b++;
+	}
+}
+
+void Matrix_f32::MultiplyWithScalarInPlace(const double scalar)
+{
+	float * a = &content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*a = *a * scalar;
+		a++;
+	}
+}
+
+#ifdef _VECTORIZED_CODE
+void Matrix_f32::AddInPlaceVectorized(Matrix_f32 const & mat2)
+{
+	if (!AreOfSameSize(*this, mat2))
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+	
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = &mat2.content[0][0];
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		AddVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		AddVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		AddVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+	}
+}
+void Matrix_f32::SubtractInPlaceVectorized(Matrix_f32 const & mat2)
+{
+	if (!AreOfSameSize(*this, mat2))
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = &mat2.content[0][0];
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		SubtractVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		SubtractVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		SubtractVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+	}
+}
+
+void Matrix_f32::MultiplyWithScalarInPlaceVectorized(const double scalar)
+{
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = new float[_VECTOR_SIZE_F32];
+	for (int i = 0; i < _VECTOR_SIZE_F32; i++)
+		b[i] = scalar;
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		MultiplyVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		MultiplyVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		MultiplyVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+	}
+	delete[] b;
+}
+#endif
 
 Matrix_f32 Matrix_f32::Identity(_INDEX dimension)
 {
@@ -273,21 +434,27 @@ Matrix_f32 ** Matrix_f32::DecomposeLUP(const Matrix_f32 &mat) //TODO finish impl
 
 Matrix_f32 Matrix_f32::AddMatrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreOfSameSize(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 
 	Matrix_f32 result(mat1.Rows(), mat1.Columns());
+	size_t size = result.Rows() * result.Columns();
 
-	for (_INDEX i = 0; i < mat1.Rows(); i++)
+	float * a = &mat1.content[0][0];
+	float * b = &mat2.content[0][0];
+	float * c = &result.content[0][0];
+
+	for (size_t i = 0; i < size; i++)
 	{
-		for (_INDEX j = 0; j < mat1.Columns(); j++)
-		{
-			double value = mat1.GetValue(i, j) + mat2.GetValue(i, j);
-			result.SetValue(i, j, value);
-		}
+		*c = *a + *b;
+		a++;
+		b++;
+		c++;
 	}
 
 	return result;
@@ -295,21 +462,27 @@ Matrix_f32 Matrix_f32::AddMatrices(const Matrix_f32 & mat1, const Matrix_f32 & m
 
 Matrix_f32 Matrix_f32::SubtractMatrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreOfSameSize(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 
 	Matrix_f32 result(mat1.Rows(), mat1.Columns());
+	size_t size = result.Rows() * result.Columns();
 
-	for (_INDEX i = 0; i < mat1.Rows(); i++)
+	float * a = &mat1.content[0][0];
+	float * b = &mat2.content[0][0];
+	float * c = &result.content[0][0];
+
+	for (size_t i = 0; i < size; i++)
 	{
-		for (_INDEX j = 0; j < mat1.Columns(); j++)
-		{
-			double value = mat1.GetValue(i, j) - mat2.GetValue(i, j);
-			result.SetValue(i, j, value);
-		}
+		*c = *a - *b;
+		a++;
+		b++;
+		c++;
 	}
 
 	return result;
@@ -317,11 +490,13 @@ Matrix_f32 Matrix_f32::SubtractMatrices(const Matrix_f32 & mat1, const Matrix_f3
 
 Matrix_f32 Matrix_f32::MultiplyMatrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreMultipliable(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to multiply array of " << mat1.Columns() << "columns with an array of " << mat2.Rows() << " rows." << std::endl;
 		return Matrix_f32();  //really need to figure out how to make this thing more gracefull.
 	}
+#endif
 
 	Matrix_f32 result(mat1.Rows(), mat2.Columns());
 
@@ -343,14 +518,17 @@ Matrix_f32 Matrix_f32::MultiplyMatrices(const Matrix_f32 & mat1, const Matrix_f3
 
 Matrix_f32 Matrix_f32::MultiplayMatrixWithScalar(const Matrix_f32 & mat1, const float scalar)
 {
-	Matrix_f32 result = mat1;
+	Matrix_f32 result(mat1.Rows(), mat1.Columns());
+	size_t size = result.Rows() * result.Columns();
 
-	for (_INDEX i = 0; i < result.Rows(); i++)
+	float * a = &mat1.content[0][0];
+	float * b = &result.content[0][0];
+
+	for (size_t i = 0; i < size; i++)
 	{
-		for (_INDEX j = 0; j < result.Columns(); j++)
-		{
-			result.SetValue(i, j, result.GetValue(i, j) * scalar);
-		}
+		*b = *a * scalar;
+		a++;
+		b++;
 	}
 
 	return result;
@@ -359,23 +537,22 @@ Matrix_f32 Matrix_f32::MultiplayMatrixWithScalar(const Matrix_f32 & mat1, const 
 #ifdef _VECTORIZED_CODE
 Matrix_f32 Matrix_f32::AddMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreOfSameSize(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 
 	Matrix_f32 result(mat1.Rows(), mat1.Columns());
 
 	size_t size = result.Rows() * result.Columns();
 
-	//int remainder = size % _VECTOR_SIZE_F32;
-	//int vectorizedSpan = size - remainder;
 	float * a = &mat1.content[0][0];
 	float * b = &mat2.content[0][0];
 	float * c = &result.content[0][0];
 
-	//for (_INDEX i = 0; i < vectorizedSpan; i += _VECTOR_SIZE_F32)
 	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
 	{
 #ifdef _USE_AVX512
@@ -386,19 +563,10 @@ Matrix_f32 Matrix_f32::AddMatricesVectorized(const Matrix_f32 & mat1, const Matr
 		AddVectors128_f32(a, b, c);
 #endif
 
-		a += _VECTOR_SIZE_F32;// * sizeof(double);
-		b += _VECTOR_SIZE_F32;// * sizeof(double);
-		c += _VECTOR_SIZE_F32;// * sizeof(double);
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+		c += _VECTOR_SIZE_F32;
 	}
-
-	// //handle remainders, if exist
-	// for (int i = vectorizedSpan; i < size; i++)
-	// {
-	// 	*c = (*a) + (*b);
-	// 	a++;
-	// 	b++;
-	// 	c++;
-	// }
 
 	return result;
 }
@@ -406,23 +574,21 @@ Matrix_f32 Matrix_f32::AddMatricesVectorized(const Matrix_f32 & mat1, const Matr
 
 Matrix_f32 Matrix_f32::SubtractMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreOfSameSize(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 
 	Matrix_f32 result(mat1.Rows(), mat1.Columns());
-
 	size_t size = result.Rows() * result.Columns();
 
-	//int remainder = size % _VECTOR_SIZE_F32;
-	//int vectorizedSpan = size - remainder;
 	float * a = &mat1.content[0][0];
 	float * b = &mat2.content[0][0];
 	float * c = &result.content[0][0];
 
-	//for (_INDEX i = 0; i < vectorizedSpan; i += _VECTOR_SIZE_F32)
 	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
 	{
 #ifdef _USE_AVX512
@@ -433,93 +599,88 @@ Matrix_f32 Matrix_f32::SubtractMatricesVectorized(const Matrix_f32 & mat1, const
 		SubtractVectors128_f32(a, b, c);
 #endif
 
-		a += _VECTOR_SIZE_F32;// * sizeof(double);
-		b += _VECTOR_SIZE_F32;// * sizeof(double);
-		c += _VECTOR_SIZE_F32;// * sizeof(double);
-	}
-
-	//handle remainders, if exist
-	// for (int i = vectorizedSpan; i < size; i++)
-	// {
-	// 	*c = (*a) + (*b);
-	// 	a++;
-	// 	b++;
-	// 	c++;
-	// }
-
-	return result;
-}
-
-Matrix_f32 Matrix_f32::MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2) //incomplete
-{
-	Matrix_f32 result(mat1.Rows(), mat2.Columns());
-
-	if (!AreMultipliable(mat1, mat2))
-	{
-		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
-		return Matrix_f32();
-	}
-
-	_INDEX size = result.Columns() * result.Rows();
-
-	float * a = new float[_VECTOR_SIZE_F32]();
-	float * b = &mat2.content[0][0];
-	float * c = &result.content[0][0];
-	_INDEX curRow = 0;
-	//size_t bSize = mat2.Columns() * mat2.Rows();
-
-
-	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
-	{
-		_INDEX curColumn = i % result.Columns();
-		curRow = floor(i / result.Columns());
-
-		for (int j = 0; j < mat1.Columns(); j++)
-		{
-			_INDEX _row = curRow;
-			_INDEX _j = j;
-			a[0] = mat1.content[_row][_j];
-			_row++;
-			for (int k = 1; k < _VECTOR_SIZE_F32; k++)
-			{
-				if (_row >= mat1.Rows())
-				{
-					_row = 0;
-					_j++;
-					if (_j >= mat1.Columns())
-						_j = 0;
-				}
-				a[k] = mat1.content[_row][_j];
-			}
-
-			b = &mat2.content[j][curColumn];
-
-			// std::cout << " ====== " << std::endl;
-			// std::cout << "row, column : " << curRow << ", " << curColumn << std::endl;
-			// for (int x = 0; x < 8; x++)
-			// std::cout << " A: " << a[x] << ", b: " << *(b + x) << std::endl; //test
-
-
-			AddMultiplyVectors_f32(a, b, c, c);
-		}
-
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
 		c += _VECTOR_SIZE_F32;
 	}
 
-
-	//delete[] b;
-	delete[] a;
-
 	return result;
 }
 
+//Matrix_f32 Matrix_f32::MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2) //incomplete
+//{
+//	Matrix_f32 result(mat1.Rows(), mat2.Columns());
+//
+//#ifdef _USE_BOUNDS_CHECK
+//	if (!AreMultipliable(mat1, mat2))
+//	{
+//		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+//		return Matrix_f32();
+//	}
+//#endif
+//
+//	_INDEX size = result.Columns() * result.Rows();
+//
+//	float * a = new float[_VECTOR_SIZE_F32]();
+//	float * b = &mat2.content[0][0];
+//	float * c = &result.content[0][0];
+//	_INDEX curRow = 0;
+//	//size_t bSize = mat2.Columns() * mat2.Rows();
+//
+//
+//	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+//	{
+//		_INDEX curColumn = i % result.Columns();
+//		curRow = floor(i / result.Columns());
+//
+//		for (int j = 0; j < mat1.Columns(); j++)
+//		{
+//			_INDEX _row = curRow;
+//			_INDEX _j = j;
+//			a[0] = mat1.content[_row][_j];
+//			_row++;
+//			for (int k = 1; k < _VECTOR_SIZE_F32; k++)
+//			{
+//				if (_row >= mat1.Rows())
+//				{
+//					_row = 0;
+//					_j++;
+//					if (_j >= mat1.Columns())
+//						_j = 0;
+//				}
+//				a[k] = mat1.content[_row][_j];
+//			}
+//
+//			b = &mat2.content[j][curColumn];
+//
+//			// std::cout << " ====== " << std::endl;
+//			// std::cout << "row, column : " << curRow << ", " << curColumn << std::endl;
+//			// for (int x = 0; x < 8; x++)
+//			// std::cout << " A: " << a[x] << ", b: " << *(b + x) << std::endl; //test
+//
+//
+//			AddMultiplyVectors_f32(a, b, c, c);
+//		}
+//
+//		c += _VECTOR_SIZE_F32;
+//	}
+//
+//
+//	//delete[] b;
+//	delete[] a;
+//
+//	return result;
+//}
+
 Matrix_f32 Matrix_f32::MultiplyMatricesVectorized_N(const Matrix_f32 & mat1, const Matrix_f32 & mat2)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!AreMultipliable(mat1, mat2))
 	{
 		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 	if (mat1.Rows() < _VECTOR_SIZE_F32) //no need to vectorize
 		return MultiplyMatrices(mat1, mat2); //TODO move this check to * overload
 
@@ -629,11 +790,13 @@ Matrix_f32 Matrix_f32::MultiplayMatrixWithScalarVectorized(const Matrix_f32 & ma
 
 Matrix_f32 Matrix_f32::InvertMatrix(const Matrix_f32 & sourceMat, MatrixInversionMethod method)
 {
+#ifdef _USE_BOUNDS_CHECK
 	if (!IsInvertible(sourceMat))
 	{
 		std::cout << "ERROR! Attempting to invert a non-invertible array." << std::endl;
 		return Matrix_f32();
 	}
+#endif
 
 	switch (method)
 	{
@@ -653,6 +816,7 @@ double Matrix_f32::CalculateDeterminant(const Matrix_f32 & mat)
 	//For larger matrices, LU decomposition is made use of, where for A = LU -> det(A) = det(L) * det(U),
 	//and for triangular matrices, the determinant is simply the product of the diagonal.
 
+	//TODO add special case for 4x4 matrix
 	switch (mat.Rows())
 	{
 	case 1:

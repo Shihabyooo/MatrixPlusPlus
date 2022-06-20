@@ -9,7 +9,6 @@ template class Array2D<long>;
 
 class Matrix_f32 : public Array2D<float> {
 public:
-
     //using Array2D<float>::Array2D; //To inherit base class constructors.
     //constructors and destructors
 	Matrix_f32();
@@ -26,6 +25,10 @@ public:
     Matrix_f32 operator* (const float & scalar);
     Matrix_f32 operator+ (const Matrix_f32 & mat2);
 	Matrix_f32 operator- (const Matrix_f32 & mat2);
+	void operator+= (Matrix_f32 const & mat2);
+	void operator-= (Matrix_f32 const & mat2);
+	void operator*= (Matrix_f32 const & mat2); //No inplace multiplication algorithm implemented (is there any?), this is basically * and = op in one.
+	void operator*= (const double scalar);
 
     Matrix_f32 Invert() const;
     double Determinant() const;
@@ -34,6 +37,14 @@ public:
     Matrix_f32 ** DecomposeLUP() const; //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices with permuation, returns as an array of three [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper, the third is the permuation matrix. Returns NULL if not decomposable.
     bool NearlyEquals(const Matrix_f32 &mat2, double tolerance);
     bool IsSymmetric(float tolerance);
+	
+	void AddInPlace(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix
+	void SubtractInPlace(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
+	void MultiplyWithScalarInPlace(const double scalar);
+
+	void AddInPlaceVectorized(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix
+	void SubtractInPlaceVectorized(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
+	void MultiplyWithScalarInPlaceVectorized(const double scalar);
 
     //Static methods
     static Matrix_f32 Identity(_INDEX dimension);	//simple function for quick construction of a identity matrix of size: dimension*dimension.
@@ -41,18 +52,18 @@ public:
     static bool IsInvertible(Matrix_f32 mat, bool checkSingular = false);	//Computing the determinant can take ages with current algorithm for large matrices, so the singularity check is optional.
     static bool IsSymmetric(const Matrix_f32 &mat, double tolerance); //For squared matrices only. Returns false for non-squared matrices. tolerance is the (absolute) allowed error in difference between counterpart values, bellow which they are considered equal.
     static bool AreNearlyEquall(const Matrix_f32 &mat1, const Matrix_f32 &mat2, double tolerance);
-    //TODO modify LU/LUT decomp to return smartpoints instead.
+    //TODO modify LU/LUT decomp to return smartpointers instead.
     static Matrix_f32 ** DecomposeLU(const Matrix_f32 &mat);  //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices, returns as an array of two [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper. Returns NULL if not decomposable. Deleting memory is responcibility of caller.
 	static Matrix_f32 ** DecomposeLUP(const Matrix_f32 &mat); //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices with permuation, returns as an array of three [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper, the third is the permuation matrix. Returns NULL if not decomposable. Deleting memory is responcibility of caller.
 
-    static Matrix_f32 AddMAtrices(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
+	static Matrix_f32 AddMatrices(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
     static Matrix_f32 SubtractMatrices(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
     static Matrix_f32 MultiplyMatrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2);
 	static Matrix_f32 MultiplayMatrixWithScalar(const Matrix_f32 &mat1, const float scalar);    
 
 	static Matrix_f32 AddMatricesVectorized(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
     static Matrix_f32 SubtractMatricesVectorized(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
-    static Matrix_f32 MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2);
+    //static Matrix_f32 MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2); //Not working currently.
     static Matrix_f32 MultiplyMatricesVectorized_N(const Matrix_f32 & mat1, const Matrix_f32 & mat2); //naive implementation that doesn't rely on FMA.
     static Matrix_f32 MultiplayMatrixWithScalarVectorized(const Matrix_f32 &mat1, const float scalar); //Incomplete.
     
