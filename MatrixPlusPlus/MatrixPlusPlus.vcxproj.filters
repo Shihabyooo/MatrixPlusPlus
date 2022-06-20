@@ -27,6 +27,9 @@
     <ClInclude Include="MatricesPP.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VectorPP_f32.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MatrixPP_f32.cpp">
@@ -39,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ArrayPP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VectorPP_f32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

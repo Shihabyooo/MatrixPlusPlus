@@ -127,12 +127,14 @@
     <ClInclude Include="MatricesPP.hpp" />
     <ClInclude Include="MatrixPP_f32.hpp" />
     <ClInclude Include="VectorMaths.hpp" />
+    <ClInclude Include="VectorPP_f32.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ArrayPP.cpp" />
     <ClCompile Include="MatrixPP_f32.cpp" />
     <ClCompile Include="TestingFunctions.cpp" />
     <ClCompile Include="VectorMaths.cpp" />
+    <ClCompile Include="VectorPP_f32.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

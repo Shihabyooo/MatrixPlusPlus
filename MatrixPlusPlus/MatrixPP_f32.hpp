@@ -17,14 +17,14 @@ public:
 	Matrix_f32(const Matrix_f32 & sourceMat); //copy constructor (Deep copy)
 	~Matrix_f32();
 
-    Matrix_f32(Array2D<float> sourceArr);
-    Matrix_f32(Array2D<int> sourceArr);
-    Matrix_f32(Array2D<long> sourceArr);
+    explicit Matrix_f32(Array2D<float> sourceArr);
+    explicit Matrix_f32(Array2D<int> sourceArr);
+	explicit Matrix_f32(Array2D<long> sourceArr);
 
-    Matrix_f32 operator* (const Matrix_f32 & mat2);
-    Matrix_f32 operator* (const float & scalar);
-    Matrix_f32 operator+ (const Matrix_f32 & mat2);
-	Matrix_f32 operator- (const Matrix_f32 & mat2);
+    Matrix_f32 operator* (const Matrix_f32 & mat2) const;
+    Matrix_f32 operator* (const float & scalar) const;
+    Matrix_f32 operator+ (const Matrix_f32 & mat2) const;
+	Matrix_f32 operator- (const Matrix_f32 & mat2) const;
 	void operator+= (Matrix_f32 const & mat2);
 	void operator-= (Matrix_f32 const & mat2);
 	void operator*= (Matrix_f32 const & mat2); //No inplace multiplication algorithm implemented (is there any?), this is basically * and = op in one.
@@ -42,9 +42,11 @@ public:
 	void SubtractInPlace(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
 	void MultiplyWithScalarInPlace(const double scalar);
 
+#ifdef _VECTORIZED_CODE
 	void AddInPlaceVectorized(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix
 	void SubtractInPlaceVectorized(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
 	void MultiplyWithScalarInPlaceVectorized(const double scalar);
+#endif
 
     //Static methods
     static Matrix_f32 Identity(_INDEX dimension);	//simple function for quick construction of a identity matrix of size: dimension*dimension.
@@ -61,20 +63,22 @@ public:
     static Matrix_f32 MultiplyMatrices(const Matrix_f32 & mat1, const Matrix_f32 & mat2);
 	static Matrix_f32 MultiplayMatrixWithScalar(const Matrix_f32 &mat1, const float scalar);    
 
+#ifdef _VECTORIZED_CODE
 	static Matrix_f32 AddMatricesVectorized(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
     static Matrix_f32 SubtractMatricesVectorized(const Matrix_f32 &mat1, const Matrix_f32 &mat2);
     //static Matrix_f32 MultiplyMatricesVectorized(const Matrix_f32 & mat1, const Matrix_f32 & mat2); //Not working currently.
     static Matrix_f32 MultiplyMatricesVectorized_N(const Matrix_f32 & mat1, const Matrix_f32 & mat2); //naive implementation that doesn't rely on FMA.
     static Matrix_f32 MultiplayMatrixWithScalarVectorized(const Matrix_f32 &mat1, const float scalar); //Incomplete.
-    
+#endif // _VECTORIZED_CODE
+
     static Matrix_f32 InvertMatrix(const Matrix_f32 & sourceMat, MatrixInversionMethod method = MatrixInversionMethod::Gauss_Jordan);	//switch-statement based on method to use appropriate implementation. Now only Gauss_Jordan, more in future.
     
     static double CalculateDeterminant(const Matrix_f32 & mat);
 
 protected:
     template <typename T>
-    void CopyFromArray2D(Array2D<T> sourceArr);
-    
+    void CopyFromArray2D(Array2D<T> const & sourceArr);
+
     void AllocateMemory(_INDEX _rows, _INDEX _columns) override;
 
     //matrix Inversion Methods

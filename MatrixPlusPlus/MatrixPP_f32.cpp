@@ -50,7 +50,7 @@ Matrix_f32::Matrix_f32(Array2D<long> sourceArr)
 	CopyFromArray2D(sourceArr);
 }
 
-Matrix_f32 Matrix_f32::operator*(const Matrix_f32 & mat2)
+Matrix_f32 Matrix_f32::operator*(const Matrix_f32 & mat2) const
 {
 #ifdef _VECTORIZED_CODE
 	return MultiplyMatricesVectorized_N(*this, mat2);
@@ -59,7 +59,7 @@ Matrix_f32 Matrix_f32::operator*(const Matrix_f32 & mat2)
 #endif
 }
 
-Matrix_f32 Matrix_f32::operator*(const float & scalar)
+Matrix_f32 Matrix_f32::operator*(const float & scalar) const 
 {
 #ifdef _VECTORIZED_CODE
 	return MultiplayMatrixWithScalarVectorized(*this, scalar);
@@ -68,7 +68,7 @@ Matrix_f32 Matrix_f32::operator*(const float & scalar)
 #endif
 }
 
-Matrix_f32 Matrix_f32::operator+(const Matrix_f32 & mat2)
+Matrix_f32 Matrix_f32::operator+(const Matrix_f32 & mat2) const 
 {
 #ifdef _VECTORIZED_CODE
 	return AddMatricesVectorized(*this, mat2);
@@ -77,7 +77,7 @@ Matrix_f32 Matrix_f32::operator+(const Matrix_f32 & mat2)
 #endif
 }
 
-Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2)
+Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2) const 
 {
 #ifdef _VECTORIZED_CODE
 	return SubtractMatricesVectorized(*this, mat2);
@@ -852,7 +852,7 @@ double Matrix_f32::CalculateDeterminant(const Matrix_f32 & mat)
 }
 
 template <typename T>
-void Matrix_f32::CopyFromArray2D(Array2D<T> sourceArr)
+void Matrix_f32::CopyFromArray2D(Array2D<T> const & sourceArr)
 {
 	DeleteContent();
 
@@ -878,7 +878,6 @@ void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
 #define _VECTOR_SIZE_F32 1
 #endif // !_VECTORIZED_CODE
 
-
 	try
 	{
 		size_t rawSize = _rows * _columns;
@@ -891,9 +890,7 @@ void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
 #undef _VECTOR_SIZE_F32
 #endif // !_VECTORIZED_CODE
 
-		//std::cout << "rawsize: " << rawSize << " - allocating: " << paddedSize << " - padded by " << _VECTOR_SIZE_F32 << std::endl; //test
 		content = new float*[_rows];
-		//T * helperPtr = new T[_rows * _columns];
 		float * helperPtr = new float[paddedSize]();
 
 		for (_INDEX i = 0; i < _rows; i++)
@@ -901,7 +898,6 @@ void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
 			content[i] = helperPtr;
 			helperPtr += _columns;
 		}
-
 	}
 	catch (const std::bad_alloc& exception)
 	{
@@ -913,7 +909,10 @@ void Matrix_f32::AllocateMemory(_INDEX _rows, _INDEX _columns)
 Matrix_f32 Matrix_f32::GausJordanElimination(const Matrix_f32 & sourceMat)
 {
 	Matrix_f32 result(sourceMat.Rows(), sourceMat.Columns());
-	Matrix_f32 augmentedArr = MergeArrays(sourceMat, Identity(sourceMat.Rows())); //augmentedArr is the augment matrix, which is the original matrix with a identity matrix attached to its right.
+	//TODO the line bellow allocates the memory twice unneessarily (ones when casting to Matrix_f32, and once when assigning to augmentedArr.
+	//This can be avoided by redoing the structure and nix the ArrayPP and inherentence, or moving MergeArrays locally, which would make the
+	//code more redundant, and thus going more towards the first solution (while having double the LoC -_-).
+	Matrix_f32 augmentedArr = static_cast<Matrix_f32>(MergeArrays(sourceMat, Identity(sourceMat.Rows()))); //augmentedArr is the augment matrix, which is the original matrix with a identity matrix attached to its right.
 
 	//If first pivot value is zero, must swap the row with another that has a non-zero value. If none exist, can't use this method.
 	if (augmentedArr.GetValue(0, 0) == 0.0f)
@@ -964,7 +963,7 @@ Matrix_f32 Matrix_f32::GausJordanElimination(const Matrix_f32 & sourceMat)
 	}
 
 	//extract result from augmentedArr
-	result = augmentedArr.GetSubMatrix(0, result.Rows(), sourceMat.Columns(), result.Columns());
+	result = static_cast<Matrix_f32>(augmentedArr.GetSubMatrix(0, result.Rows(), sourceMat.Columns(), result.Columns()));
 
 	return result;
 }
@@ -999,11 +998,11 @@ Matrix_f32 Matrix_f32::BlockwiseInversion(const Matrix_f32 & sourceMat) //recuri
 
 	_INDEX primarySubDimension = round((double)sourceMat.Rows() / 2.0F);
 	////You don't actually need to store e itself, could directly pass it to next recursion step.
-	Matrix_f32 e_ = BlockwiseInversion(sourceMat.GetSubMatrix(0, primarySubDimension, 0, primarySubDimension));
+	Matrix_f32 e_ = BlockwiseInversion(static_cast<Matrix_f32>(sourceMat.GetSubMatrix(0, primarySubDimension, 0, primarySubDimension)));
 
-	Matrix_f32 f = sourceMat.GetSubMatrix(0, primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension);
-	Matrix_f32 g = sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, 0, primarySubDimension);
-	Matrix_f32 h = sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension);
+	Matrix_f32 f = static_cast<Matrix_f32>(sourceMat.GetSubMatrix(0, primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension));
+	Matrix_f32 g = static_cast<Matrix_f32>(sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, 0, primarySubDimension));
+	Matrix_f32 h = static_cast<Matrix_f32>(sourceMat.GetSubMatrix(primarySubDimension, sourceMat.Rows() - primarySubDimension, primarySubDimension, sourceMat.Columns() - primarySubDimension));
 
 	//Matrix_f32 e_ = BlockwiseInversion(e);
 	Matrix_f32 e_f = e_ * f;
@@ -1019,10 +1018,9 @@ Matrix_f32 Matrix_f32::BlockwiseInversion(const Matrix_f32 & sourceMat) //recuri
 	// ((h - (g * e_) * f) * hge_f_).DisplayArrayInCLI();
 
 
-	Matrix_f32 result = Matrix_f32::StackArrays(
+	Matrix_f32 result = static_cast<Matrix_f32>(StackArrays(
 		Matrix_f32::MergeArrays(e_ + e_f * hge_f_ * ge_, (e_f * -1.0f) * hge_f_),
-		Matrix_f32::MergeArrays((hge_f_ * -1.0f) * ge_, hge_f_)
-	);
+		Matrix_f32::MergeArrays((hge_f_ * -1.0f) * ge_, hge_f_)));
 
 	// (e_ + e_f * hge_f_ * ge_).DisplayArrayInCLI();
 	// ((e_f * -1.0f) * hge_f_).DisplayArrayInCLI();
