@@ -17,9 +17,10 @@ public:
 	Vector_f32 & operator-= (Vector_f32 const & vec2);
 	Vector_f32 & operator*= (const double scalar);
 	float & operator[] (const _INDEX row);
-
+	
+	float GetValue(_INDEX row) const;	//getter, read only.
 	double Magnitude();
-
+	
 	void AddInPlace(Vector_f32 const & vec2); //for use with += overload, avoids allocating a third vector
 	void SubtractInPlace(Vector_f32 const & vec2); //for use with -= overload, avoids allocating a third vector
 	void MultiplyWithScalarInPlace(const double scalar) override;
@@ -49,6 +50,7 @@ private:
 	using Matrix_f32::IsInvertible;
 	using Matrix_f32::IsSymmetric;
 	using Matrix_f32::InvertMatrix;
+	using Array2D::GetValue;
 
 	//Vector-specific methods
 	void VectorFromMatrix(Matrix_f32 const & sourceVec, _INDEX column);

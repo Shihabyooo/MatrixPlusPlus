@@ -174,7 +174,7 @@ bool Matrix_f32::NearlyEquals(const Matrix_f32 &mat2, double tolerance)
 	return AreNearlyEquall(*this, mat2, tolerance);
 }
 
-bool Matrix_f32::IsSymmetric(float tolerance)
+bool Matrix_f32::IsSymmetric(float tolerance) const
 {
 	return IsSymmetric(*this, tolerance);
 }
@@ -322,7 +322,7 @@ bool Matrix_f32::AreMultipliable(const Matrix_f32 &mat1, const Matrix_f32 &mat2)
 		return true;
 }
 
-bool Matrix_f32::IsInvertible(Matrix_f32 mat, bool checkSingular)
+bool Matrix_f32::IsInvertible(Matrix_f32 const & mat, bool checkSingular)
 {
 	if (mat.Rows() != mat.Columns())
 		return false;

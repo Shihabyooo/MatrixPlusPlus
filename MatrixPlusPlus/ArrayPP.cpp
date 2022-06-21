@@ -319,7 +319,7 @@ void Array2D<T>::SwapRows(_INDEX firstRow, _INDEX secondRow)
 }
 
 template <typename T>
-bool Array2D<T>::IsSymmetric()
+bool Array2D<T>::IsSymmetric() const
 {
 	return IsSymmetric(*this);
 }

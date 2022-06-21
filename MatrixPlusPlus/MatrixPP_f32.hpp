@@ -36,7 +36,7 @@ public:
     Matrix_f32 ** DecomposeLU() const; //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices, returns as an array of two [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper. Returns NULL if not decomposable.
     Matrix_f32 ** DecomposeLUP() const; //For squared matrices only. Decomposes the matrix into upper and lower triangular matrices with permuation, returns as an array of three [pointers to] Array2Ds, the first being the lower decomposition, and the second the upper, the third is the permuation matrix. Returns NULL if not decomposable.
     bool NearlyEquals(const Matrix_f32 &mat2, double tolerance);
-    bool IsSymmetric(float tolerance);
+    bool IsSymmetric(float tolerance) const;
 	
 	void AddInPlace(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix
 	void SubtractInPlace(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
@@ -51,7 +51,7 @@ public:
     //Static methods
     static Matrix_f32 Identity(_INDEX dimension);	//simple function for quick construction of a identity matrix of size: dimension*dimension.
     static bool AreMultipliable(const Matrix_f32 &mat1, const Matrix_f32 &mat2);	//for m1*n1 and m2*n2 matrices, tests that n1 == m2.
-    static bool IsInvertible(Matrix_f32 mat, bool checkSingular = false);	//Computing the determinant can take ages with current algorithm for large matrices, so the singularity check is optional.
+    static bool IsInvertible(Matrix_f32 const & mat, bool checkSingular = false);	//Computing the determinant can take ages with current algorithm for large matrices, so the singularity check is optional.
     static bool IsSymmetric(const Matrix_f32 &mat, double tolerance); //For squared matrices only. Returns false for non-squared matrices. tolerance is the (absolute) allowed error in difference between counterpart values, bellow which they are considered equal.
     static bool AreNearlyEquall(const Matrix_f32 &mat1, const Matrix_f32 &mat2, double tolerance);
     //TODO modify LU/LUT decomp to return smartpointers instead.

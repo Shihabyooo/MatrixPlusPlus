@@ -103,6 +103,11 @@ Vector_f32 Vector_f32::operator-(Vector_f32 const & vec2) const
 #endif
 }
 
+float Vector_f32::GetValue(_INDEX row) const
+{
+	return content[row][0];
+}
+
 double Vector_f32::Magnitude()
 {
 	double mag = 0;
