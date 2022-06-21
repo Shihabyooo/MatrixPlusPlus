@@ -25,10 +25,10 @@ public:
     Matrix_f32 operator* (const float & scalar) const;
     Matrix_f32 operator+ (const Matrix_f32 & mat2) const;
 	Matrix_f32 operator- (const Matrix_f32 & mat2) const;
-	void operator+= (Matrix_f32 const & mat2);
-	void operator-= (Matrix_f32 const & mat2);
-	void operator*= (Matrix_f32 const & mat2); //No inplace multiplication algorithm implemented (is there any?), this is basically * and = op in one.
-	void operator*= (const double scalar);
+	Matrix_f32 & operator+= (Matrix_f32 const & mat2);
+	Matrix_f32 & operator-= (Matrix_f32 const & mat2);
+	Matrix_f32 & operator*= (Matrix_f32 const & mat2); //No inplace multiplication algorithm implemented (is there any?), this is basically * and = op in one.
+	Matrix_f32 & operator*= (const double scalar);
 
     Matrix_f32 Invert() const;
     double Determinant() const;
@@ -40,7 +40,7 @@ public:
 	
 	void AddInPlace(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix
 	void SubtractInPlace(Matrix_f32 const & mat2); //for use with -= overload, avoids allocating a third matrix
-	void MultiplyWithScalarInPlace(const double scalar);
+	virtual void MultiplyWithScalarInPlace(const double scalar);
 
 #ifdef _VECTORIZED_CODE
 	void AddInPlaceVectorized(Matrix_f32 const & mat2); //for use with += overload, avoids allocating a third matrix

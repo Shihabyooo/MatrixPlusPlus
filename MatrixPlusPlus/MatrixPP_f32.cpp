@@ -86,40 +86,44 @@ Matrix_f32 Matrix_f32::operator-(const Matrix_f32 & mat2) const
 #endif
 }
 
-void Matrix_f32::operator+=(Matrix_f32 const & mat2)
+Matrix_f32 & Matrix_f32::operator+=(Matrix_f32 const & mat2)
 {
 #ifdef _VECTORIZED_CODE
 	AddInPlaceVectorized(mat2);
 #else
 	AddInPlace(mat2);
 #endif
+	return *this;
 }
 
-void Matrix_f32::operator-=(Matrix_f32 const & mat2)
+Matrix_f32 & Matrix_f32::operator-=(Matrix_f32 const & mat2)
 {
 #ifdef _VECTORIZED_CODE
 	SubtractInPlaceVectorized(mat2);
 #else
 	SubtractInPlace(mat2);
 #endif
+	return *this;
 }
 
-void Matrix_f32::operator*=(Matrix_f32 const & mat2)
+Matrix_f32 & Matrix_f32::operator*=(Matrix_f32 const & mat2)
 {
 #ifdef _VECTORIZED_CODE
 	*this = MultiplyMatricesVectorized_N(*this, mat2);
 #else
 	*this = MultiplyMatrices(*this, mat2);
 #endif
+	return *this;
 }
 
-void Matrix_f32::operator*=(const double scalar)
+Matrix_f32 & Matrix_f32::operator*=(const double scalar)
 {
 #ifdef _VECTORIZED_CODE
 	MultiplyWithScalarInPlaceVectorized(scalar);
 #else
 	MultiplyWithScalarInPlace(scalar);
 #endif
+	return *this;
 }
 
 Matrix_f32 Matrix_f32::Invert() const
