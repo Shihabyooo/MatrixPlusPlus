@@ -34,11 +34,46 @@ Vector_f32::Vector_f32(Matrix_f32 const & sourceMat, _INDEX column)
 	VectorFromMatrix(sourceMat, column);
 }
 
+Vector_f32 Vector_f32::operator*(double const scalar)
+{
+	return MultiplayVectorWithScalar(*this, scalar);
+}
+
+Vector_f32 & Vector_f32::operator+=(Vector_f32 const & vec2)
+{
+#ifdef _VECTORIZED_CODE
+	AddInPlaceVectorized(vec2);
+#else
+	AddInPlace(vec2);
+#endif
+	return *this;
+}
+
+Vector_f32 & Vector_f32::operator-=(Vector_f32 const & vec2)
+{
+#ifdef _VECTORIZED_CODE
+	SubtractInPlaceVectorized(vec2);
+#else
+	SubtractInPlace(vec2);
+#endif
+	return *this;
+}
+
+Vector_f32 & Vector_f32::operator*=(const double scalar)
+{
+#ifdef _VECTORIZED_CODE
+	MultiplyWithScalarInPlaceVectorized(scalar);
+#else
+	MultiplyWithScalarInPlace(scalar);
+#endif
+	return *this;
+}
+
 float & Vector_f32::operator[](const _INDEX row)
 {
 #ifdef _USE_BOUNDS_CHECK
 	if (content == NULL			//Checking whether this object is empty. Making an assumption that initializing the first level of the content is automatically followed by init of sublevel.
-		|| _row >= rows)		//Checking out-of-bound writes.
+		|| row >= rows)		//Checking out-of-bound writes.
 		throw std::out_of_range("ERROR! Row value out of range or content set to NULL");
 #endif
 
@@ -76,16 +111,133 @@ double Vector_f32::Magnitude()
 	return sqrt(mag);
 }
 
-void Vector_f32::VectorFromMatrix(Matrix_f32 const & sourceMat, _INDEX column)
+void Vector_f32::AddInPlace(Vector_f32 const & vec2)
 {
-	DeleteContent();
-	rows = sourceMat.Rows();
-	columns = 1;
-	Alloc(rows, 1);
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, vec2))
+		std::cout << "ERROR! Attempting to add vectors of different sizes." << std::endl;
+#endif
 
-	for (int i = 0; i < rows; i++)
-		content[i][0] = sourceMat.GetValue(i, column);
+	float * a = &content[0][0];
+	float * b = &vec2.content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*a += *b;
+		a++;
+		b++;
+	}
 }
+
+void Vector_f32::SubtractInPlace(Vector_f32 const & vec2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, vec2))
+		std::cout << "ERROR! Attempting to add vectors of different sizes." << std::endl;
+#endif
+
+	float * a = &content[0][0];
+	float * b = &vec2.content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*a -= *b;
+		a++;
+		b++;
+	}
+}
+
+void Vector_f32::MultiplyWithScalarInPlace(const double scalar)
+{
+	float * a = &content[0][0];
+	size_t size = rows * columns;
+
+	for (size_t i = 0; i < size; i++)
+		*a = *a * scalar;
+}
+
+#ifdef _VECTORIZED_CODE
+void Vector_f32::AddInPlaceVectorized(Vector_f32 const & vec2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, vec2))
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+#endif
+
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = &vec2.content[0][0];
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		AddVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		AddVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		AddVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+	}
+}
+
+void Vector_f32::SubtractInPlaceVectorized(Vector_f32 const & vec2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(*this, vec2))
+		std::cout << "ERROR! Attempting to add vectors of different sizes." << std::endl;
+#endif
+
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = &vec2.content[0][0];
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		SubtractVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		SubtractVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		SubtractVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+	}
+}
+
+void Vector_f32::MultiplyWithScalarInPlaceVectorized(const double scalar)
+{
+	size_t size = rows * columns;
+
+	float * a = &content[0][0];
+	float * b = new float[_VECTOR_SIZE_F32];
+	for (int i = 0; i < _VECTOR_SIZE_F32; i++)
+		b[i] = scalar;
+
+	for (_INDEX i = 0; i < size; i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		MultiplyVectors512_f32(a, b, a);
+#elif defined(_USE_AVX256)
+		MultiplyVectors256_f32(a, b, a);
+#elif defined(_USE_SSE)
+		MultiplyVectors128_f32(a, b, a);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+	}
+	delete[] b;
+}
+
+#endif
 
 Vector_f32 Vector_f32::AddVectors(Vector_f32 const & vec1, Vector_f32 const & vec2)
 {
@@ -97,7 +249,7 @@ Vector_f32 Vector_f32::AddVectors(Vector_f32 const & vec1, Vector_f32 const & ve
 	}
 #endif
 
-	Vector_f32 result(vec1.Rows(), 1);
+	Vector_f32 result(vec1.Rows());
 
 	float * a = &vec1.content[0][0];
 	float * b = &vec2.content[0][0];
@@ -124,7 +276,7 @@ Vector_f32 Vector_f32::SubtractVectors(Vector_f32 const & vec1, Vector_f32 const
 	}
 #endif
 
-	Vector_f32 result(vec1.Rows(), 1);
+	Vector_f32 result(vec1.Rows());
 
 	float * a = &vec1.content[0][0];
 	float * b = &vec2.content[0][0];
@@ -141,3 +293,133 @@ Vector_f32 Vector_f32::SubtractVectors(Vector_f32 const & vec1, Vector_f32 const
 	return result;
 }
 
+Vector_f32 Vector_f32::MultiplayVectorWithScalar(Vector_f32 const & vec1, double const scalar)
+{
+	Vector_f32 result(vec1.Rows(), vec1.Columns());
+	size_t size = result.Rows() * result.Columns();
+
+	float * a = &vec1.content[0][0];
+	float * b = &result.content[0][0];
+
+	for (size_t i = 0; i < size; i++)
+	{
+		*b = *a * scalar;
+		a++;
+		b++;
+	}
+
+	return result;
+}
+
+#ifdef _VECTORIZED_CODE
+
+Vector_f32 Vector_f32::AddVectorsVectorized(Vector_f32 const & vec1, Vector_f32 const & vec2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(mat1, mat2))
+	{
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+		return Matrix_f32();
+	}
+#endif
+
+	Vector_f32 result(vec1.Rows());
+	
+	float * a = &vec1.content[0][0];
+	float * b = &vec2.content[0][0];
+	float * c = &result.content[0][0];
+
+	for (_INDEX i = 0; i < result.Rows(); i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		AddVectors512_f32(a, b, c);
+#elif defined(_USE_AVX256)
+		AddVectors256_f32(a, b, c);
+#elif defined(_USE_SSE)
+		AddVectors128_f32(a, b, c);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+		c += _VECTOR_SIZE_F32;
+	}
+
+	return result;
+}
+
+Vector_f32 Vector_f32::SubtractVectorsVectorized(Vector_f32 const & vec1, Vector_f32 const & vec2)
+{
+#ifdef _USE_BOUNDS_CHECK
+	if (!AreOfSameSize(mat1, mat2))
+	{
+		std::cout << "ERROR! Attempting to add arrays of different sizes." << std::endl;
+		return Matrix_f32();
+	}
+#endif
+
+	Vector_f32 result(vec1.Rows());
+
+	float * a = &vec1.content[0][0];
+	float * b = &vec2.content[0][0];
+	float * c = &result.content[0][0];
+
+	for (_INDEX i = 0; i < result.Rows(); i += _VECTOR_SIZE_F32)
+	{
+#ifdef _USE_AVX512
+		SubtractVectors512_f32(a, b, c);
+#elif defined(_USE_AVX256)
+		SubtractVectors256_f32(a, b, c);
+#elif defined(_USE_SSE)
+		SubtractVectors128_f32(a, b, c);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		b += _VECTOR_SIZE_F32;
+		c += _VECTOR_SIZE_F32;
+	}
+
+	return result;
+}
+
+Vector_f32 Vector_f32::MultiplayVectorScalarVectorized(Vector_f32 const & vec1, double const scalar)
+{
+	Vector_f32 result(vec1.Rows());
+
+	float * a = &vec1.content[0][0];
+	float * b;
+	float * c = &result.content[0][0];
+
+	b = new float[_VECTOR_SIZE_F32];
+	for (int i = 0; i < _VECTOR_SIZE_F32; i++)
+		b[i] = scalar;
+
+	for (_INDEX i = 0; i < vec1.Rows(); i += _VECTOR_SIZE_F32)
+	{
+#ifdef  _USE_AVX512
+		MultiplyVectors512_f32(a, b, c);
+#elif defined(_USE_AVX256)
+		MultiplyVectors256_f32(a, b, c);
+#elif defined(_USE_SSE)
+		MultiplyVectors128_f32(a, b, c);
+#endif
+
+		a += _VECTOR_SIZE_F32;
+		c += _VECTOR_SIZE_F32;
+	}
+
+	delete[] b;
+	return result;
+}
+
+#endif
+
+void Vector_f32::VectorFromMatrix(Matrix_f32 const & sourceMat, _INDEX column)
+{
+	DeleteContent();
+	rows = sourceMat.Rows();
+	columns = 1;
+	Alloc(rows, 1);
+
+	for (int i = 0; i < rows; i++)
+		content[i][0] = sourceMat.GetValue(i, column);
+}

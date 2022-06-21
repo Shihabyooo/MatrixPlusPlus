@@ -12,15 +12,17 @@ public:
 
 	Vector_f32 operator+ (Vector_f32 const & vec2) const;
 	Vector_f32 operator- (Vector_f32 const & vec2) const;
-	//Vector_f32 operator* (Vector_f32 const & vec2) const;
 	Vector_f32 operator* (double const scalar);
+	Vector_f32 & operator+= (Vector_f32 const & vec2);
+	Vector_f32 & operator-= (Vector_f32 const & vec2);
+	Vector_f32 & operator*= (const double scalar);
 	float & operator[] (const _INDEX row);
 
 	double Magnitude();
 
 	void AddInPlace(Vector_f32 const & vec2); //for use with += overload, avoids allocating a third vector
 	void SubtractInPlace(Vector_f32 const & vec2); //for use with -= overload, avoids allocating a third vector
-	void MultiplyWithScalarInPlace(const double scalar);
+	void MultiplyWithScalarInPlace(const double scalar) override;
 
 #ifdef _VECTORIZED_CODE
 	void AddInPlaceVectorized(Vector_f32 const & vec2); //for use with += overload, avoids allocating a third vector
@@ -40,6 +42,7 @@ public:
 
 private:
 	//Hide methods inapplicable to vectors.
+	using Matrix_f32::Matrix_f32; //hide matrix constructors
 	using Matrix_f32::DecomposeLU;
 	using Matrix_f32::DecomposeLUP;
 	using Matrix_f32::CalculateDeterminant;

@@ -11,9 +11,9 @@
 
 int main(int argc, char ** argv)
 {	
-	int size1 = 1000;
-	int size2 = 1000;
-	int trialsCount = 10;
+	//int size1 = 1000;
+	//int size2 = 1000;
+	//int trialsCount = 10;
 
 	// for (int  trial = 0; trial < trialsCount; trial++)
 	// {
@@ -76,23 +76,25 @@ int main(int argc, char ** argv)
 	// std::cout << "3 by 3:\n";
 	// (threeByThree * Matrix_f32::Invert3x3Matrix(threeByThree)).DisplayArrayInCLI(10);
 	
-	int size = 10;
-	Matrix_f32 invTest(size, size);
+	//int size = 10;
+	//Matrix_f32 invTest(size, size);
 
-	srand(time(0));
-	for (size_t i = 0; i < size; i++)	
- 		for (size_t j = 0; j < size; j++)		
-			invTest[i][j] = rand()%20;
+	//srand(time(0));
+	//for (size_t i = 0; i < size; i++)	
+ //		for (size_t j = 0; j < size; j++)		
+	//		invTest[i][j] = rand()%20;
 
 	//invTest.DisplayArrayInCLI();
 	//Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise).DisplayArrayInCLI();
 	//(invTest * Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).DisplayArrayInCLI(7);
-	std::cout << "Determinant of result: " << (invTest *Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).Determinant() << std::endl;
+	//std::cout << "Determinant of result: " << (invTest *Matrix_f32::InvertMatrix(invTest, MatrixInversionMethod::Blockwise)).Determinant() << std::endl;
 
 	Vector_f32 testVec(5, 1.0f);
 	Vector_f32 testVec2(5, 2.0f);
 	
+	testVec[1] = testVec[2] = 99.0f;
 	testVec = testVec + testVec2;
+
 	testVec.DisplayArrayInCLI();
 
 	/*srand(time(0));
