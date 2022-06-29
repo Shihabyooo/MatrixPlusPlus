@@ -30,6 +30,12 @@
     <ClInclude Include="VectorPP_f32.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MatrixPP_f64.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VectorPP_f64.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MatrixPP_f32.cpp">
@@ -45,6 +51,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VectorPP_f32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MatrixPP_f64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VectorPP_f64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

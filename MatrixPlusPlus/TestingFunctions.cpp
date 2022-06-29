@@ -155,6 +155,5 @@ int main(int argc, char ** argv)
 	float result = vector3.DotProduct(vector2);
 	std::cout << result << "\n";*/
 	
-
 	return 0;
 }
