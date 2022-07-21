@@ -155,5 +155,23 @@ int main(int argc, char ** argv)
 	float result = vector3.DotProduct(vector2);
 	std::cout << result << "\n";*/
 	
+	double cMat0[3][4] = { {1,2,3,4}, {2,3,4,5} , {100,200,300,400} };
+	
+	double ** cMat1 = new double*[2]();
+	cMat1[0] = new double[2]();
+	cMat1[1] = new double[2]();
+	cMat1[0][1] = 1;
+	cMat1[0][0] = 3;
+	cMat1[1][0] = 4;
+
+	Matrix_f64 testMat1 = Matrix_f64(cMat1, 2, 2);
+	testMat1.DisplayOnCLI();
+
+	Matrix_f64 testMat2((double *)cMat0, 3, 4);
+	testMat2.DisplayOnCLI();
+
+	 std::cout << "Press any key to continue." << std::endl;
+	 std::cin.sync();
+	 std::cin.get();
 	return 0;
 }
