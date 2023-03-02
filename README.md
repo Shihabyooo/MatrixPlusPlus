@@ -8,7 +8,7 @@ This project initially started as a quick class to use in other projetcs. Later 
 
 Four matrix types are implemented (or planned to be):
 Matrix_f32 - stores 32bit floating point values (floats), and supports all matrix mathematica ops (that were implemented).
-[planned] Matrix_f64 - stores 64bit floating point values (doubles), ditto.
+Matrix_f64 - stores 64bit floating point values (doubles), ditto.
 [planned] Matrix_i32 - stores 32 bit integer values (ints), supports a subset of math ops.
 [planned] Matrix_i64 - stores 64 bit integer values (longs), ditto.
 
