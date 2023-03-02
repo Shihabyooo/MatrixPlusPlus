@@ -7,10 +7,10 @@ Comes with some maths operators overloaded for basic matrix operations plus meth
 This project initially started as a quick class to use in other projetcs. Later it evolved into a project primarily for learning purposes.
 
 Four matrix types are implemented (or planned to be):
-Matrix_f32 - stores 32bit floating point values (floats), and supports all matrix mathematica ops (that were implemented).
-Matrix_f64 - stores 64bit floating point values (doubles), ditto.
-[planned] Matrix_i32 - stores 32 bit integer values (ints), supports a subset of math ops.
-[planned] Matrix_i64 - stores 64 bit integer values (longs), ditto.
+- Matrix_f32 - stores 32bit floating point values (floats), and supports all matrix mathematica ops (that were implemented).
+- Matrix_f64 - stores 64bit floating point values (doubles), ditto.
+- [planned] Matrix_i32 - stores 32 bit integer values (ints), supports a subset of math ops.
+- [planned] Matrix_i64 - stores 64 bit integer values (longs), ditto.
 
 Additionally, an Array2D class is exposed that allows storing any type. Naturally, it doesn't allow for any mathematical ops.
 
