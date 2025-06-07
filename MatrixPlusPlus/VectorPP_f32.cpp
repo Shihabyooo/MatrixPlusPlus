@@ -160,7 +160,7 @@ float Vector_f32::operator[](const _INDEX row) const
 }
 
 
-float Vector_f32::SetValue(_INDEX row, float value)
+void Vector_f32::SetValue(_INDEX row, float value)
 {
 #ifdef _USE_BOUNDS_CHECK
 	if (content == NULL							//Checking whether this object is empty. Making an assumption that initializing the first level of the content is automatically followed by init of sublevel.
@@ -170,7 +170,7 @@ float Vector_f32::SetValue(_INDEX row, float value)
 	content[row][0] = value;
 }
 
-float Vector_f32::SetVector(float * const cStyle1DArr, _INDEX _rows)
+void Vector_f32::SetVector(float * const cStyle1DArr, _INDEX _rows)
 {
 	DeleteContent();
 	Alloc(_rows, 1);

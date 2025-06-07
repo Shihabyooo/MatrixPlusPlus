@@ -1,18 +1,18 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "shell",
-			"label": "C/C++: clang build active file",
-			"command": "clang++",
-			"args": [
-				"-std=c++17",
-				"-stdlib=libstdc++",
-				"-g",
-				"${workspaceFolder}/MatrixPlusPlus/*.cpp",
-				"-o",
-				"${workspaceFolder}/Build/${workspaceFolderBasename}",
-				"-v", //verbose
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++ build active file",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-std=c++17",
+                //"-stdlib=libstdc++",
+                "-g",
+                "${workspaceFolder}/MatrixPlusPlus/*.cpp",
+                "-o",
+                "${workspaceFolder}/Build/${workspaceFolderBasename}",
+				// "-v", //verbose - For some reason, this causes building via VSCode to fail. But it builds correctly with it via CLI 
 				"-msse",
 				"-mavx", //enables AVX
 				"-mavx2", //enables AVX2
@@ -20,13 +20,16 @@
 				"-mfma", //enables FMA
 				//"-march=native", //enables all IS supported by current CPU.
 			],
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": "build"
-		}
-	]
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
 }

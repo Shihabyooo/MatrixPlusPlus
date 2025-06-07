@@ -25,8 +25,8 @@ public:
 	float & operator[] (const _INDEX row);
 	float operator[] (const _INDEX row) const;
 	
-	float SetValue(_INDEX row, float value);
-	float SetVector(float * const cStyle1DArr, _INDEX _rows); //cStyle1DArr is double[_rows]
+	void SetValue(_INDEX row, float value);
+	void SetVector(float * const cStyle1DArr, _INDEX _rows); //cStyle1DArr is double[_rows]
 	float GetValue(_INDEX row) const;
 	std::unique_ptr<float[]> AsCArray() const;
 	

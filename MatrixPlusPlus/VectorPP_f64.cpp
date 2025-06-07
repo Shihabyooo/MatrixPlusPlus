@@ -201,7 +201,7 @@ void Vector_f64::SetValue(_INDEX row, double value)
 	content[row][0] = value;
 }
 
-float Vector_f64::SetVector(double * const cStyle1DArr, _INDEX _rows)
+void Vector_f64::SetVector(double * const cStyle1DArr, _INDEX _rows)
 {
 	DeleteContent();
 	Alloc(_rows, 1);

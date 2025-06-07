@@ -29,7 +29,7 @@ public:
 	double operator[] (const _INDEX row) const;
 	
 	void SetValue(_INDEX row, double value);
-	float SetVector(double * const cStyle1DArr, _INDEX _rows); //cStyle1DArr is double[_rows]
+	void SetVector(double * const cStyle1DArr, _INDEX _rows); //cStyle1DArr is double[_rows]
 	double GetValue(_INDEX row) const;
 	std::unique_ptr<double[]> AsCArray() const;
 

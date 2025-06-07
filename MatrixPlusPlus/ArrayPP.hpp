@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cmath>
+#include <memory>
 
 //uncomment the line bellow to have every method that reads/writes content into the array first check that the supplied index is within range.
 //#define _USE_BOUNDS_CHECK
